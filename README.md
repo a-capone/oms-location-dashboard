@@ -1,0 +1,44 @@
+# OMS Location Dashboard
+
+Static Netlify dashboard for OMS/Kibo shipments, Geodis outbound status and WMS inventory for:
+
+- `TLTEMP0048`
+- `TLITWH0048`
+- `TLITGX0048`
+
+The published site is the single file in `tmp/index.html`.
+
+## Refresh
+
+The GitHub Actions workflow refreshes the dashboard every 2 hours and can also be run manually from the Actions tab.
+
+Workflow:
+
+1. Reads OMS/Kibo data from BigQuery view `tlg-business-intelligence-prd.til.v_oms_active_location_dashboard`.
+2. Reads the latest Geodis `Uscite_*.xlsx` from SFTP.
+3. Calls `InventoryWmsMonitoring` for the three dashboard locations.
+4. Writes the refreshed mono-file to `tmp/index.html`.
+5. Deploys `tmp/` to Netlify production.
+
+## Required GitHub Secrets
+
+Configure these repository secrets before relying on the scheduled workflow:
+
+- `GCP_SERVICE_ACCOUNT_JSON`: JSON service account with BigQuery read access.
+- `GEODIS_SFTP_PASSWORD`: Geodis SFTP password.
+- `INVAPP_CLIENT_ID`: OAuth client id for the inventory API.
+- `INVAPP_CLIENT_SECRET`: OAuth client secret for the inventory API.
+- `NETLIFY_AUTH_TOKEN`: Netlify personal access token.
+- `NETLIFY_SITE_ID`: Netlify site id.
+
+## Local Build
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS=(Resolve-Path '.\path-to-service-account.json').Path
+$env:GEODIS_SFTP_PASSWORD='...'
+$env:INVAPP_CLIENT_ID='...'
+$env:INVAPP_CLIENT_SECRET='...'
+python scripts\build_oms_location_dashboard.py --output tmp\index.html
+```
+
+Open `tmp/index.html` in a browser after the build.

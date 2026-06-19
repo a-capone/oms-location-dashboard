@@ -1,0 +1,61 @@
+name: Refresh OMS dashboard
+
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oms-dashboard-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Prepare Google credentials
+        shell: bash
+        run: |
+          printf '%s' "$GCP_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/gcp-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-sa.json" >> "$GITHUB_ENV"
+        env:
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+
+      - name: Refresh mono-file dashboard
+        run: python scripts/build_oms_location_dashboard.py --output tmp/index.html
+        env:
+          GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
+          GEODIS_SFTP_USER: stnetlglog.geodis
+          GEODIS_SFTP_PORT: "22"
+          GEODIS_SFTP_PASSWORD: ${{ secrets.GEODIS_SFTP_PASSWORD }}
+          INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
+          INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
+          INVAPP_LOCATIONS: TLTEMP0048,TLITWH0048,TLITGX0048
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: ./tmp
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Refresh OMS dashboard"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          overwrites-pull-request-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

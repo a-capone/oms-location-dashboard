@@ -1,0 +1,1606 @@
+﻿<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMS Location 0048 Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f4f1;
+      --surface: #ffffff;
+      --surface-2: #fafaf7;
+      --ink: #101214;
+      --ink-2: #343941;
+      --muted: #6b7280;
+      --quiet: #9aa0a8;
+      --line: rgba(16, 18, 20, 0.12);
+      --line-strong: rgba(16, 18, 20, 0.2);
+      --black: #101214;
+      --blue: #2563eb;
+      --green: #147a43;
+      --amber: #b25b00;
+      --red: #b42318;
+      --violet: #6d41d9;
+      --cyan: #087f8c;
+      --radius: 8px;
+      --shadow: 0 8px 24px rgba(16, 18, 20, 0.08);
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.45;
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1540px, 100%);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.1;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      margin-top: 7px;
+      color: var(--muted);
+      max-width: 72ch;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 4px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--ink-2);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex: 0 0 auto;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.3fr) repeat(5, minmax(128px, 0.65fr)) auto auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: 0 1px 2px rgba(16, 18, 20, 0.04);
+      margin-bottom: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+    }
+
+    .control {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .control:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(16, 18, 20, 0.08);
+    }
+
+    .button {
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .button:hover {
+      border-color: var(--line-strong);
+      background: var(--surface-2);
+    }
+
+    .button.primary {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .button.primary:hover {
+      background: #2a2d31;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      margin-bottom: 14px;
+    }
+
+    .tab-button {
+      height: 32px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      padding: 0 12px;
+      font-weight: 600;
+    }
+
+    .tab-button.active {
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .kpi {
+      min-height: 112px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(16, 18, 20, 0.04);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .kpi-value {
+      font-size: 31px;
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    .kpi-note {
+      color: var(--quiet);
+      font-size: 12px;
+    }
+
+    .kpi.ready .kpi-value { color: var(--green); }
+    .kpi.stale .kpi-value { color: var(--amber); }
+    .kpi.canceled .kpi-value { color: var(--red); }
+    .kpi.shipments .kpi-value { color: var(--violet); }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 1px 2px rgba(16, 18, 20, 0.04);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .panel-subtitle {
+      margin: 3px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .chart-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .location-row {
+      display: grid;
+      grid-template-columns: 138px minmax(0, 1fr) 56px;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(16, 18, 20, 0.07);
+    }
+
+    .location-row:last-child {
+      border-bottom: 0;
+    }
+
+    .location-name {
+      display: grid;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .location-name strong {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .location-name span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .bar {
+      height: 22px;
+      display: flex;
+      overflow: hidden;
+      border-radius: 5px;
+      background: #ecece8;
+      outline: 1px solid rgba(16, 18, 20, 0.06);
+    }
+
+    .segment {
+      min-width: 2px;
+      height: 100%;
+      border: 0;
+      padding: 0;
+      transition: filter 140ms ease, transform 140ms ease;
+    }
+
+    .segment:hover {
+      filter: brightness(0.93);
+      transform: translateY(-1px);
+    }
+
+    .count {
+      color: var(--ink-2);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      background: var(--color);
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 52px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .metric-label {
+      min-width: 0;
+      color: var(--ink-2);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .metric-value {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .meter {
+      grid-column: 1 / -1;
+      height: 6px;
+      border-radius: 999px;
+      background: #ecece8;
+      overflow: hidden;
+      margin-top: -5px;
+    }
+
+    .meter span {
+      display: block;
+      height: 100%;
+      width: var(--w);
+      background: var(--c);
+      border-radius: inherit;
+    }
+
+    .table-panel {
+      margin-top: 14px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 580px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1120px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(16, 18, 20, 0.08);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    th.sortable {
+      cursor: pointer;
+    }
+
+    tbody tr {
+      transition: background 120ms ease;
+    }
+
+    tbody tr:hover {
+      background: #f7f7f4;
+    }
+
+    td {
+      color: var(--ink-2);
+      font-size: 13px;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0;
+    }
+
+    .state-tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--tag-bg);
+      color: var(--tag-fg);
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .drill {
+      position: sticky;
+      top: 74px;
+    }
+
+    .drill-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .drill-stat {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      background: var(--surface-2);
+    }
+
+    .drill-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .drill-stat strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      border-radius: 999px;
+      min-height: 28px;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .chip:hover,
+    .chip.active {
+      border-color: var(--ink);
+      color: var(--ink);
+      background: #f0f0ec;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 28px 16px;
+      text-align: center;
+    }
+
+    .drawer {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+    }
+
+    .drawer.open {
+      display: block;
+    }
+
+    .drawer-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(16, 18, 20, 0.28);
+    }
+
+    .drawer-panel {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      bottom: 14px;
+      width: min(500px, calc(100vw - 28px));
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .drawer-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-2);
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .drawer-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .drawer-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .drawer-close {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .drawer-body {
+      padding: 16px;
+      overflow: auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px;
+      background: var(--surface-2);
+      min-width: 0;
+    }
+
+    .field span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .field strong {
+      display: block;
+      color: var(--ink);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 60;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    @media (max-width: 1120px) {
+      .toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .drill {
+        position: static;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 14px;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .meta {
+        justify-content: flex-start;
+        text-align: left;
+      }
+
+      .toolbar {
+        grid-template-columns: 1fr;
+        position: static;
+      }
+
+      .kpis {
+        grid-template-columns: 1fr;
+      }
+
+      .mini-grid,
+      .field-grid,
+      .drill-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .location-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .count {
+        text-align: left;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>OMS Location 0048 Dashboard</h1>
+          <div class="subtitle">Ordini e shipment attivi assegnati a GXO 0048, Temporary 0048 e Warehouse 0048.</div>
+        </div>
+        <div class="meta">
+          <span class="pill"><span class="dot" style="color: var(--blue)"></span><span id="hourlyRefreshTime">Aggiornamento orario</span></span>
+          <span class="pill"><span class="dot" style="color: var(--green)"></span><span id="snapshotTime">Snapshot dati</span></span>
+          <span class="pill mono" id="sourceName">BigQuery view</span>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Sezioni dashboard">
+        <button class="tab-button active" type="button" data-tab="orders">Ordini</button>
+        <button class="tab-button" type="button" data-tab="inventory">Inventario</button>
+      </nav>
+
+      <section class="tab-panel active" id="ordersPanel">
+      <section class="toolbar" aria-label="Filtri dashboard">
+        <input class="control" id="searchInput" type="search" placeholder="Cerca ordine, shipment, brand, location" />
+        <select class="control" id="locationFilter" aria-label="Location"></select>
+        <select class="control" id="statusFilter" aria-label="Shipment status"></select>
+        <select class="control" id="stateFilter" aria-label="Stato operativo"></select>
+        <select class="control" id="attentionFilter" aria-label="Bucket attenzione"></select>
+        <select class="control" id="geodisFilter" aria-label="Stato Geodis"></select>
+        <button class="button" id="resetButton" type="button">Reset</button>
+        <button class="button primary" id="exportButton" type="button">Export CSV</button>
+      </section>
+
+      <section class="kpis" id="kpiGrid" aria-label="KPI"></section>
+
+      <section class="dashboard-grid">
+        <div>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Distribuzione per location</h2>
+                <p class="panel-subtitle">Click su una barra per isolare location e stato.</p>
+              </div>
+              <span class="pill mono" id="visibleRowsBadge"></span>
+            </div>
+            <div class="panel-body">
+              <div class="chart-stack" id="locationChart"></div>
+              <div class="legend" id="stateLegend"></div>
+            </div>
+          </section>
+
+          <div class="mini-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Bucket attenzione</h2>
+                  <p class="panel-subtitle">Priorita operativa derivata da stato e anzianita.</p>
+                </div>
+              </div>
+              <div class="panel-body mini-list" id="attentionChart"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Eta ultimo update</h2>
+                  <p class="panel-subtitle">Distribuzione delle shipment per freschezza dati.</p>
+                </div>
+              </div>
+              <div class="panel-body mini-list" id="ageChart"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div>
+                  <h2 class="panel-title">Stato Geodis</h2>
+                  <p class="panel-subtitle">Ultimo file Uscite integrato nello snapshot.</p>
+                </div>
+              </div>
+              <div class="panel-body mini-list" id="geodisChart"></div>
+            </section>
+          </div>
+
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Shipment drilldown</h2>
+                <p class="panel-subtitle" id="tableSubtitle"></p>
+              </div>
+              <span class="pill mono" id="tableCount"></span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="sortable" data-sort="attention_sort">Priorita</th>
+                    <th class="sortable" data-sort="location_label">Location</th>
+                    <th class="sortable" data-sort="external_order_id">External order</th>
+                    <th class="sortable" data-sort="order_number">Order</th>
+                    <th class="sortable" data-sort="oms_shipment_number">OMS shipment</th>
+                    <th class="sortable" data-sort="shipment_order_number">Shipment order</th>
+                    <th class="sortable" data-sort="brand">Brand</th>
+                    <th class="sortable" data-sort="dashboard_state">Stato</th>
+                    <th class="sortable" data-sort="geodis_status_label">Geodis</th>
+                    <th class="sortable" data-sort="days_since_update">Giorni update</th>
+                    <th class="sortable" data-sort="update_datetime_rome">Ultimo update</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <aside class="panel drill">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Drilldown corrente</h2>
+              <p class="panel-subtitle" id="drillSubtitle"></p>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="drill-summary" id="drillSummary"></div>
+            <div class="chip-row" id="quickChips"></div>
+            <div class="mini-list" id="brandBreakdown"></div>
+          </div>
+        </aside>
+      </section>
+      </section>
+
+      <section class="tab-panel" id="inventoryPanel">
+        <section class="kpis" id="inventoryKpiGrid" aria-label="KPI inventario"></section>
+        <section class="inventory-grid">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Quantita per location</h2>
+                <p class="panel-subtitle" id="inventorySubtitle">Ultimo dato inventory API.</p>
+              </div>
+            </div>
+            <div class="panel-body mini-list" id="inventoryChart"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Inventario WMS</h2>
+                <p class="panel-subtitle">Location lette dal servizio InventoryWmsMonitoring.</p>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Quantity</th>
+                    <th>Updated at</th>
+                  </tr>
+                </thead>
+                <tbody id="inventoryTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <div>
+          <h2 class="drawer-title" id="drawerTitle"></h2>
+          <div class="drawer-subtitle" id="drawerSubtitle"></div>
+        </div>
+        <button class="drawer-close" type="button" data-close-drawer aria-label="Chiudi dettaglio">x</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intelligence-prd.til.v_oms_active_location_dashboard","rowCount":0,"lastHourlyRefreshAtUtc":null,"geodis":{"fileName":null,"remoteDir":null,"remotePath":null,"fileSize":0,"fileMtime":0,"indexedReferences":0,"matchedShipments":0,"statusMap":{"1":"INTEGRATO","2":"IN ATTESA DI PICKING/EVASO CON ROTTURE DI STOCK","3":"PICKING","4":"PICKING","5":"PACKING","7":"PACKED (MA NON BORDERIZZATO)","8":"SHIPPED"}},"inventory":{"locations":"TLTEMP0048,TLITWH0048,TLITGX0048","fetchedAtUtc":null,"rowCount":0,"rows":[]},"rows":[]};
+</script>
+  <script>
+    const payload = window.OMS_DASHBOARD_DATA || { rows: [], generatedAtUtc: null, source: "n/a" };
+    const allRows = payload.rows || [];
+    const inventoryRows = payload.inventory?.rows || [];
+
+    const state = {
+      search: "",
+      location: "ALL",
+      status: "ALL",
+      dashboardState: "ALL",
+      attention: "ALL",
+      age: "ALL",
+      geodis: "ALL",
+      sortKey: "attention_sort",
+      sortDir: "asc",
+      selectedRow: null
+    };
+
+    const colors = {
+      "Accept Shipment": "#2563eb",
+      "Prepare for Shipment": "#147a43",
+      "Validate Items In Stock": "#087f8c",
+      "Wait for Payment Confirmation": "#b25b00",
+      "Print Packing Slip": "#6d41d9",
+      "Canceled": "#b42318",
+      "Operational queue": "#64748b",
+      "Awaiting accept shipment": "#2563eb",
+      "Stock validation": "#087f8c",
+      "Payment wait": "#b25b00",
+      "Stale >7 days": "#b25b00",
+      "Canceled / monitor only": "#b42318",
+      "Updated <=4h": "#147a43",
+      "Updated 4-24h": "#2563eb",
+      "Updated 1-7d": "#087f8c",
+      "Updated 7-30d": "#b25b00",
+      "Updated >30d": "#b42318",
+      "INTEGRATO": "#2563eb",
+      "IN ATTESA DI PICKING/EVASO CON ROTTURE DI STOCK": "#b25b00",
+      "PICKING": "#087f8c",
+      "PACKING": "#6d41d9",
+      "PACKED (MA NON BORDERIZZATO)": "#147a43",
+      "SHIPPED": "#101214",
+      "Non presente in file Geodis": "#9aa0a8"
+    };
+
+    const el = {
+      hourlyRefreshTime: document.getElementById("hourlyRefreshTime"),
+      snapshotTime: document.getElementById("snapshotTime"),
+      sourceName: document.getElementById("sourceName"),
+      searchInput: document.getElementById("searchInput"),
+      locationFilter: document.getElementById("locationFilter"),
+      statusFilter: document.getElementById("statusFilter"),
+      stateFilter: document.getElementById("stateFilter"),
+      attentionFilter: document.getElementById("attentionFilter"),
+      geodisFilter: document.getElementById("geodisFilter"),
+      resetButton: document.getElementById("resetButton"),
+      exportButton: document.getElementById("exportButton"),
+      kpiGrid: document.getElementById("kpiGrid"),
+      visibleRowsBadge: document.getElementById("visibleRowsBadge"),
+      locationChart: document.getElementById("locationChart"),
+      stateLegend: document.getElementById("stateLegend"),
+      attentionChart: document.getElementById("attentionChart"),
+      ageChart: document.getElementById("ageChart"),
+      geodisChart: document.getElementById("geodisChart"),
+      tableBody: document.getElementById("tableBody"),
+      tableSubtitle: document.getElementById("tableSubtitle"),
+      tableCount: document.getElementById("tableCount"),
+      drillSubtitle: document.getElementById("drillSubtitle"),
+      drillSummary: document.getElementById("drillSummary"),
+      quickChips: document.getElementById("quickChips"),
+      brandBreakdown: document.getElementById("brandBreakdown"),
+      inventoryKpiGrid: document.getElementById("inventoryKpiGrid"),
+      inventorySubtitle: document.getElementById("inventorySubtitle"),
+      inventoryChart: document.getElementById("inventoryChart"),
+      inventoryTableBody: document.getElementById("inventoryTableBody"),
+      drawer: document.getElementById("drawer"),
+      drawerTitle: document.getElementById("drawerTitle"),
+      drawerSubtitle: document.getElementById("drawerSubtitle"),
+      drawerBody: document.getElementById("drawerBody"),
+      toast: document.getElementById("toast")
+    };
+
+    function value(row, key) {
+      const raw = row[key];
+      return raw === null || raw === undefined || raw === "" ? "n/a" : raw;
+    }
+
+    function compactNumber(n) {
+      return new Intl.NumberFormat("it-IT").format(n || 0);
+    }
+
+    function dateLabel(dateString) {
+      if (!dateString) return "n/a";
+      const parsed = new Date(dateString);
+      if (Number.isNaN(parsed.getTime())) return String(dateString).replace("T", " ").slice(0, 16);
+      return parsed.toLocaleString("it-IT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function distinctCount(rows, key) {
+      return new Set(rows.map((row) => row[key]).filter(Boolean)).size;
+    }
+
+    function unique(rows, key) {
+      return Array.from(new Set(rows.map((row) => value(row, key)))).sort((a, b) => String(a).localeCompare(String(b)));
+    }
+
+    function groupRows(rows, key) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const group = value(row, key);
+        if (!map.has(group)) map.set(group, []);
+        map.get(group).push(row);
+      });
+      return map;
+    }
+
+    function groupDistinct(rows, key, distinctKey = "order_number") {
+      return Array.from(groupRows(rows, key), ([name, group]) => ({
+        name,
+        rows: group,
+        count: distinctCount(group, distinctKey),
+        shipments: group.length
+      })).sort((a, b) => b.count - a.count || String(a.name).localeCompare(String(b.name)));
+    }
+
+    function filteredRows() {
+      const query = state.search.trim().toLowerCase();
+      return allRows.filter((row) => {
+        if (state.location !== "ALL" && row.assigned_location_code !== state.location) return false;
+        if (state.status !== "ALL" && row.shipment_status !== state.status) return false;
+        if (state.dashboardState !== "ALL" && value(row, "dashboard_state") !== state.dashboardState) return false;
+        if (state.attention !== "ALL" && value(row, "attention_bucket") !== state.attention) return false;
+        if (state.age !== "ALL" && value(row, "update_age_bucket") !== state.age) return false;
+        if (state.geodis !== "ALL" && value(row, "geodis_status_label") !== state.geodis) return false;
+        if (!query) return true;
+        const haystack = [
+          row.assigned_location_code,
+          row.location_label,
+          row.order_number,
+          row.external_order_id,
+          row.shipment_order_number,
+          row.oms_order_id,
+          row.oms_shipment_number,
+          row.brand,
+          row.dashboard_state,
+          row.attention_bucket,
+          row.geodis_status_code,
+          row.geodis_status_label,
+          row.geodis_reference
+        ].join(" ").toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    function sortedRows(rows) {
+      const dir = state.sortDir === "asc" ? 1 : -1;
+      return [...rows].sort((a, b) => {
+        const av = a[state.sortKey];
+        const bv = b[state.sortKey];
+        if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+        return String(value(a, state.sortKey)).localeCompare(String(value(b, state.sortKey))) * dir;
+      });
+    }
+
+    function setFilter(key, valueToSet) {
+      state[key] = valueToSet;
+      render();
+    }
+
+    function selectOptions(select, rows, key, label, current) {
+      const options = [`<option value="ALL">${label}</option>`]
+        .concat(unique(rows, key).map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`));
+      select.innerHTML = options.join("");
+      select.value = current;
+    }
+
+    function setupControls() {
+      selectOptions(el.locationFilter, allRows, "assigned_location_code", "Tutte le location", state.location);
+      selectOptions(el.statusFilter, allRows, "shipment_status", "Tutti gli status", state.status);
+      selectOptions(el.stateFilter, allRows, "dashboard_state", "Tutti gli stati", state.dashboardState);
+      selectOptions(el.attentionFilter, allRows, "attention_bucket", "Tutti i bucket", state.attention);
+      selectOptions(el.geodisFilter, allRows, "geodis_status_label", "Tutti stati Geodis", state.geodis);
+
+      el.searchInput.addEventListener("input", (event) => {
+        state.search = event.target.value;
+        render();
+      });
+      el.locationFilter.addEventListener("change", (event) => setFilter("location", event.target.value));
+      el.statusFilter.addEventListener("change", (event) => setFilter("status", event.target.value));
+      el.stateFilter.addEventListener("change", (event) => setFilter("dashboardState", event.target.value));
+      el.attentionFilter.addEventListener("change", (event) => setFilter("attention", event.target.value));
+      el.geodisFilter.addEventListener("change", (event) => setFilter("geodis", event.target.value));
+      el.resetButton.addEventListener("click", resetFilters);
+      el.exportButton.addEventListener("click", exportCsv);
+
+      document.querySelectorAll("th.sortable").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.dataset.sort;
+          if (state.sortKey === key) state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+          else {
+            state.sortKey = key;
+            state.sortDir = key === "days_since_update" ? "desc" : "asc";
+          }
+          renderTable(filteredRows());
+        });
+      });
+
+      document.querySelectorAll("[data-close-drawer]").forEach((node) => {
+        node.addEventListener("click", closeDrawer);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeDrawer();
+      });
+
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".tab-button").forEach((node) => node.classList.toggle("active", node === button));
+          document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${button.dataset.tab}Panel`));
+        });
+      });
+    }
+
+    function resetFilters() {
+      state.search = "";
+      state.location = "ALL";
+      state.status = "ALL";
+      state.dashboardState = "ALL";
+      state.attention = "ALL";
+      state.age = "ALL";
+      state.geodis = "ALL";
+      el.searchInput.value = "";
+      el.locationFilter.value = "ALL";
+      el.statusFilter.value = "ALL";
+      el.stateFilter.value = "ALL";
+      el.attentionFilter.value = "ALL";
+      el.geodisFilter.value = "ALL";
+      render();
+    }
+
+    function render() {
+      const rows = filteredRows();
+      renderKpis(rows);
+      renderLocationChart(rows);
+      renderMiniChart(el.attentionChart, rows, "attention_bucket", "attention");
+      renderMiniChart(el.ageChart, rows, "update_age_bucket", "age");
+      renderMiniChart(el.geodisChart, rows, "geodis_status_label", "geodis");
+      renderTable(rows);
+      renderDrill(rows);
+      renderInventory();
+      el.visibleRowsBadge.textContent = `${compactNumber(rows.length)} shipment`;
+      syncControlValues();
+    }
+
+    function syncControlValues() {
+      el.locationFilter.value = state.location;
+      el.statusFilter.value = state.status;
+      el.stateFilter.value = state.dashboardState;
+      el.attentionFilter.value = state.attention;
+      el.geodisFilter.value = state.geodis;
+    }
+
+    function renderKpis(rows) {
+      const readyRows = rows.filter((row) => row.shipment_status === "READY");
+      const canceledRows = rows.filter((row) => row.shipment_status === "CANCELED");
+      const staleRows = rows.filter((row) => row.attention_bucket === "Stale >7 days");
+      const geodisRows = rows.filter((row) => row.geodis_found === true || row.geodis_found === "true");
+      const kpis = [
+        { label: "Ordini distinti", value: distinctCount(rows, "order_number"), note: `${compactNumber(rows.length)} shipment`, cls: "" },
+        { label: "Ordini ready", value: distinctCount(readyRows, "order_number"), note: `${compactNumber(readyRows.length)} shipment operative`, cls: "ready" },
+        { label: "Stale >7 giorni", value: distinctCount(staleRows, "order_number"), note: `${compactNumber(staleRows.length)} shipment da verificare`, cls: "stale" },
+        { label: "Cancellati", value: distinctCount(canceledRows, "order_number"), note: `${compactNumber(canceledRows.length)} shipment`, cls: "canceled" },
+        { label: "Match Geodis", value: distinctCount(geodisRows, "order_number"), note: `${compactNumber(geodisRows.length)} shipment nel file Uscite`, cls: "ready" },
+        { label: "Shipment", value: rows.length, note: `${compactNumber(distinctCount(rows, "oms_shipment_number"))} OMS shipment`, cls: "shipments" }
+      ];
+      el.kpiGrid.innerHTML = kpis.map((kpi) => `
+        <article class="kpi ${kpi.cls}">
+          <div class="kpi-label">${escapeHtml(kpi.label)}</div>
+          <div class="kpi-value">${compactNumber(kpi.value)}</div>
+          <div class="kpi-note">${escapeHtml(kpi.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderLocationChart(rows) {
+      const locationGroups = groupRows(rows, "assigned_location_code");
+      const states = unique(rows, "dashboard_state");
+      const sortedLocations = Array.from(locationGroups, ([code, group]) => {
+        const label = value(group[0], "location_label");
+        return { code, label, group, total: distinctCount(group, "order_number") };
+      }).sort((a, b) => b.total - a.total);
+
+      if (!sortedLocations.length) {
+        el.locationChart.innerHTML = `<div class="empty">Nessun dato per i filtri correnti.</div>`;
+        el.stateLegend.innerHTML = "";
+        return;
+      }
+
+      el.locationChart.innerHTML = sortedLocations.map((item) => {
+        const stateGroups = groupRows(item.group, "dashboard_state");
+        const segments = states.map((stateName) => {
+          const segmentRows = stateGroups.get(stateName) || [];
+          const count = distinctCount(segmentRows, "order_number");
+          if (!count) return "";
+          const width = Math.max(2, (count / item.total) * 100);
+          const color = colors[stateName] || "#64748b";
+          return `<button class="segment" title="${escapeHtml(stateName)}: ${count}" style="width:${width}%; background:${color}" data-location="${escapeHtml(item.code)}" data-state="${escapeHtml(stateName)}"></button>`;
+        }).join("");
+
+        return `
+          <div class="location-row">
+            <div class="location-name">
+              <strong>${escapeHtml(item.label)}</strong>
+              <span>${escapeHtml(item.code)}</span>
+            </div>
+            <div class="bar">${segments}</div>
+            <div class="count">${compactNumber(item.total)}</div>
+          </div>
+        `;
+      }).join("");
+
+      el.stateLegend.innerHTML = states.map((stateName) => `
+        <span class="legend-item"><span class="swatch" style="--color:${colors[stateName] || "#64748b"}"></span>${escapeHtml(stateName)}</span>
+      `).join("");
+
+      el.locationChart.querySelectorAll(".segment").forEach((segment) => {
+        segment.addEventListener("click", () => {
+          state.location = segment.dataset.location;
+          state.dashboardState = segment.dataset.state;
+          render();
+        });
+      });
+    }
+
+    function renderMiniChart(container, rows, key, mode) {
+      const groups = groupDistinct(rows, key);
+      const max = Math.max(...groups.map((group) => group.count), 1);
+      if (!groups.length) {
+        container.innerHTML = `<div class="empty">Nessun dato.</div>`;
+        return;
+      }
+
+      container.innerHTML = groups.map((group) => {
+        const color = colors[group.name] || "#64748b";
+        const width = `${Math.max(4, (group.count / max) * 100)}%`;
+        const active =
+          (mode === "attention" && state.attention === group.name) ||
+          (mode === "age" && state.age === group.name) ||
+          (mode === "geodis" && state.geodis === group.name)
+            ? " active"
+            : "";
+        return `
+          <button class="metric-row chip${active}" type="button" data-name="${escapeHtml(group.name)}" data-mode="${mode}">
+            <span class="metric-label">${escapeHtml(group.name)}</span>
+            <span class="metric-value">${compactNumber(group.count)}</span>
+            <span class="meter"><span style="--w:${width}; --c:${color}"></span></span>
+          </button>
+        `;
+      }).join("");
+
+      container.querySelectorAll("button.metric-row").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.dataset.mode === "attention") state.attention = state.attention === button.dataset.name ? "ALL" : button.dataset.name;
+          if (button.dataset.mode === "age") state.age = state.age === button.dataset.name ? "ALL" : button.dataset.name;
+          if (button.dataset.mode === "geodis") state.geodis = state.geodis === button.dataset.name ? "ALL" : button.dataset.name;
+          render();
+        });
+      });
+    }
+
+    function renderTable(rows) {
+      const sorted = sortedRows(rows);
+      const limit = 180;
+      const visible = sorted.slice(0, limit);
+      el.tableCount.textContent = `${compactNumber(sorted.length)} righe`;
+      el.tableSubtitle.textContent = sorted.length > limit
+        ? `Mostrate le prime ${limit} righe ordinate per ${state.sortKey}.`
+        : `Ordinate per ${state.sortKey}.`;
+
+      if (!visible.length) {
+        el.tableBody.innerHTML = `<tr><td class="empty" colspan="11">Nessuna shipment corrisponde ai filtri correnti.</td></tr>`;
+        return;
+      }
+
+      el.tableBody.innerHTML = visible.map((row, index) => `
+        <tr data-row-index="${index}">
+          <td>${tag(value(row, "attention_bucket"))}</td>
+          <td>${escapeHtml(value(row, "location_label"))}</td>
+          <td class="mono">${escapeHtml(value(row, "external_order_id"))}</td>
+          <td class="mono">${escapeHtml(value(row, "order_number"))}</td>
+          <td class="mono">${escapeHtml(value(row, "oms_shipment_number"))}</td>
+          <td class="mono">${escapeHtml(value(row, "shipment_order_number"))}</td>
+          <td>${escapeHtml(value(row, "brand"))}</td>
+          <td>${tag(value(row, "dashboard_state"))}</td>
+          <td>${tag(value(row, "geodis_status_label"))}</td>
+          <td>${compactNumber(row.days_since_update || 0)}</td>
+          <td>${escapeHtml(dateLabel(row.update_datetime_rome))}</td>
+        </tr>
+      `).join("");
+
+      el.tableBody.querySelectorAll("tr[data-row-index]").forEach((tr) => {
+        tr.addEventListener("click", () => {
+          openDrawer(visible[Number(tr.dataset.rowIndex)]);
+        });
+      });
+    }
+
+    function renderDrill(rows) {
+      const filters = [];
+      if (state.location !== "ALL") filters.push(state.location);
+      if (state.status !== "ALL") filters.push(state.status);
+      if (state.dashboardState !== "ALL") filters.push(state.dashboardState);
+      if (state.attention !== "ALL") filters.push(state.attention);
+      if (state.age !== "ALL") filters.push(state.age);
+      if (state.geodis !== "ALL") filters.push(state.geodis);
+      if (state.search) filters.push(`"${state.search}"`);
+      el.drillSubtitle.textContent = filters.length ? filters.join(" / ") : "Tutte le shipment nello snapshot.";
+
+      const readyRows = rows.filter((row) => row.shipment_status === "READY");
+      const staleRows = rows.filter((row) => row.attention_bucket === "Stale >7 days");
+      const geodisRows = rows.filter((row) => row.geodis_found === true || row.geodis_found === "true");
+      el.drillSummary.innerHTML = [
+        ["Ordini", distinctCount(rows, "order_number")],
+        ["Shipment", rows.length],
+        ["Ready", distinctCount(readyRows, "order_number")],
+        ["Stale", distinctCount(staleRows, "order_number")],
+        ["Geodis", distinctCount(geodisRows, "order_number")]
+      ].map(([label, value]) => `
+        <div class="drill-stat"><span>${label}</span><strong>${compactNumber(value)}</strong></div>
+      `).join("");
+
+      const chipValues = [
+        ["TLITGX0048", "location", "TLITGX0048"],
+        ["TLTEMP0048", "location", "TLTEMP0048"],
+        ["TLITWH0048", "location", "TLITWH0048"],
+        ["READY", "status", "READY"],
+        ["CANCELED", "status", "CANCELED"],
+        ["Stale >7 days", "attention", "Stale >7 days"],
+        ["Packed Geodis", "geodis", "PACKED (MA NON BORDERIZZATO)"],
+        ["Shipped Geodis", "geodis", "SHIPPED"]
+      ];
+
+      el.quickChips.innerHTML = chipValues.map(([label, key, val]) => {
+        const active = state[key] === val ? "active" : "";
+        return `<button class="chip ${active}" type="button" data-key="${key}" data-value="${escapeHtml(val)}">${escapeHtml(label)}</button>`;
+      }).join("");
+
+      el.quickChips.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.key;
+          state[key] = state[key] === button.dataset.value ? "ALL" : button.dataset.value;
+          render();
+        });
+      });
+
+      renderBreakdown(el.brandBreakdown, rows, "brand", "Brand");
+    }
+
+    function renderBreakdown(container, rows, key, title) {
+      const groups = groupDistinct(rows, key).slice(0, 8);
+      const max = Math.max(...groups.map((group) => group.count), 1);
+      container.innerHTML = `<div class="panel-subtitle">${escapeHtml(title)}</div>` + groups.map((group) => {
+        const width = `${Math.max(4, (group.count / max) * 100)}%`;
+        return `
+          <div class="metric-row">
+            <span class="metric-label">${escapeHtml(group.name)}</span>
+            <span class="metric-value">${compactNumber(group.count)}</span>
+            <span class="meter"><span style="--w:${width}; --c:#101214"></span></span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderInventory() {
+      const totalQuantity = inventoryRows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
+      const maxQuantity = Math.max(...inventoryRows.map((row) => Number(row.quantity) || 0), 0);
+      const latestUpdate = inventoryRows
+        .map((row) => row.updatedAt)
+        .filter(Boolean)
+        .sort()
+        .at(-1);
+
+      el.inventoryKpiGrid.innerHTML = [
+        { label: "Quantita totale", value: totalQuantity, note: `${compactNumber(inventoryRows.length)} location`, cls: "ready" },
+        { label: "Location lette", value: inventoryRows.length, note: payload.inventory?.locations || "n/a", cls: "" },
+        { label: "Max location", value: maxQuantity, note: "quantita piu alta", cls: "shipments" },
+        { label: "Inventory update", value: latestUpdate ? dateLabel(latestUpdate) : "n/a", note: "ultimo aggiornamento WMS", cls: "" }
+      ].map((kpi) => `
+        <article class="kpi ${kpi.cls}">
+          <div class="kpi-label">${escapeHtml(kpi.label)}</div>
+          <div class="kpi-value">${escapeHtml(compactNumberOrText(kpi.value))}</div>
+          <div class="kpi-note">${escapeHtml(kpi.note)}</div>
+        </article>
+      `).join("");
+
+      el.inventorySubtitle.textContent = payload.inventory?.fetchedAtUtc
+        ? `Letto alle ${dateLabel(payload.inventory.fetchedAtUtc)}.`
+        : "Dato inventario non disponibile.";
+
+      const sorted = [...inventoryRows].sort((a, b) => (Number(b.quantity) || 0) - (Number(a.quantity) || 0));
+      el.inventoryChart.innerHTML = sorted.map((row) => {
+        const qty = Number(row.quantity) || 0;
+        const width = maxQuantity ? `${Math.max(4, (qty / maxQuantity) * 100)}%` : "0%";
+        return `
+          <div class="metric-row">
+            <span class="metric-label">${escapeHtml(value(row, "locationName"))}</span>
+            <span class="metric-value">${compactNumber(qty)}</span>
+            <span class="meter"><span style="--w:${width}; --c:#147a43"></span></span>
+          </div>
+        `;
+      }).join("") || `<div class="empty">Nessun dato inventario nello snapshot.</div>`;
+
+      el.inventoryTableBody.innerHTML = sorted.map((row) => `
+        <tr>
+          <td class="mono">${escapeHtml(value(row, "locationName"))}</td>
+          <td>${compactNumber(Number(row.quantity) || 0)}</td>
+          <td>${escapeHtml(dateLabel(row.updatedAt))}</td>
+        </tr>
+      `).join("") || `<tr><td class="empty" colspan="3">Nessun dato inventario disponibile.</td></tr>`;
+    }
+
+    function compactNumberOrText(valueToFormat) {
+      return typeof valueToFormat === "number" ? compactNumber(valueToFormat) : valueToFormat;
+    }
+
+    function tag(name) {
+      const color = colors[name] || "#64748b";
+      const bg = hexToRgba(color, 0.1);
+      return `<span class="state-tag" style="--tag-bg:${bg}; --tag-fg:${color}">${escapeHtml(name)}</span>`;
+    }
+
+    function openDrawer(row) {
+      state.selectedRow = row;
+      el.drawerTitle.textContent = value(row, "external_order_id");
+      el.drawerSubtitle.textContent = `OMS shipment ${value(row, "oms_shipment_number")} / order ${value(row, "order_number")}`;
+      const fields = [
+        ["Location", `${value(row, "location_label")} (${value(row, "assigned_location_code")})`],
+        ["Brand", value(row, "brand")],
+        ["Shipment status", value(row, "shipment_status")],
+        ["Dashboard state", value(row, "dashboard_state")],
+        ["Attention", value(row, "attention_bucket")],
+        ["Fulfillment", value(row, "fulfillment_status")],
+        ["Workflow", value(row, "workflow_shipment_state")],
+        ["Active task", value(row, "active_task_name")],
+        ["Geodis status", `${value(row, "geodis_status_code")} - ${value(row, "geodis_status_label")}`],
+        ["Geodis reference", value(row, "geodis_reference")],
+        ["Geodis source", value(row, "geodis_source_file")],
+        ["Shipment order", value(row, "shipment_order_number")],
+        ["OMS order", value(row, "oms_order_id")],
+        ["Creato", dateLabel(row.shipment_creation_datetime_rome)],
+        ["Ultimo update", dateLabel(row.update_datetime_rome)],
+        ["Giorni da update", compactNumber(row.days_since_update || 0)],
+        ["Giorni da creazione", compactNumber(row.days_since_creation || 0)]
+      ];
+      el.drawerBody.innerHTML = `
+        <div class="field-grid">
+          ${fields.map(([label, val]) => `<div class="field"><span>${escapeHtml(label)}</span><strong>${escapeHtml(val)}</strong></div>`).join("")}
+        </div>
+      `;
+      el.drawer.classList.add("open");
+      el.drawer.setAttribute("aria-hidden", "false");
+    }
+
+    function closeDrawer() {
+      el.drawer.classList.remove("open");
+      el.drawer.setAttribute("aria-hidden", "true");
+      state.selectedRow = null;
+    }
+
+    function exportCsv() {
+      const rows = sortedRows(filteredRows());
+      const columns = [
+        "assigned_location_code",
+        "location_label",
+        "external_order_id",
+        "order_number",
+        "oms_shipment_number",
+        "shipment_order_number",
+        "brand",
+        "shipment_status",
+        "fulfillment_status",
+        "dashboard_state",
+        "attention_bucket",
+        "geodis_status_code",
+        "geodis_status_label",
+        "geodis_reference",
+        "geodis_source_file",
+        "days_since_update",
+        "days_since_creation",
+        "update_datetime_rome"
+      ];
+      const csv = [
+        columns.join(","),
+        ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))
+      ].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "oms-location-0048-dashboard.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+      toast("CSV esportato");
+    }
+
+    function csvCell(valueToWrite) {
+      const text = valueToWrite === null || valueToWrite === undefined ? "" : String(valueToWrite);
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    function escapeHtml(input) {
+      return String(input ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      }[char]));
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const n = parseInt(clean, 16);
+      const r = (n >> 16) & 255;
+      const g = (n >> 8) & 255;
+      const b = n & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function toast(message) {
+      el.toast.textContent = message;
+      el.toast.classList.add("show");
+      window.clearTimeout(toast.timer);
+      toast.timer = window.setTimeout(() => el.toast.classList.remove("show"), 1800);
+    }
+
+    function init() {
+      el.hourlyRefreshTime.textContent = payload.lastHourlyRefreshAtUtc
+        ? `Ultimo aggiornamento ${dateLabel(payload.lastHourlyRefreshAtUtc)}`
+        : "Aggiornamento non disponibile";
+      el.snapshotTime.textContent = payload.generatedAtUtc ? `Snapshot ${dateLabel(payload.generatedAtUtc)}` : "Snapshot non disponibile";
+      el.sourceName.textContent = payload.geodis?.fileName ? `Geodis ${payload.geodis.fileName}` : (payload.source || "n/a");
+      setupControls();
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
