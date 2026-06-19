@@ -11,8 +11,8 @@ Use a Netlify site that will be deployed by GitHub Actions.
 Current site:
 
 ```text
-Site URL: https://oms-location-dashboard-a-capone.netlify.app
-Admin URL: https://app.netlify.com/projects/oms-location-dashboard-a-capone
+Site URL: https://tlg-csg-gxo-migration.netlify.app
+Admin URL: https://app.netlify.com/projects/tlg-csg-gxo-migration
 Site ID: 89bfda26-6337-4034-8e57-a6575f466c41
 ```
 
