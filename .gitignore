@@ -18,3 +18,6 @@ runtime/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Local Netlify folder
+.netlify
