@@ -6,6 +6,9 @@ __pycache__/
 # Local credentials and caches
 til-agent-sa.json
 gcp-sa.json
+service-account.json
+*service-account*.json
+*.secret.json
 runtime/
 *.xlsx
 *.xlsm
