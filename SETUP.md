@@ -8,6 +8,14 @@ The tracked `tmp/index.html` is a safe template with an empty payload. GitHub Ac
 
 Use a Netlify site that will be deployed by GitHub Actions.
 
+Current site:
+
+```text
+Site URL: https://oms-location-dashboard-a-capone.netlify.app
+Admin URL: https://app.netlify.com/projects/oms-location-dashboard-a-capone
+Site ID: 89bfda26-6337-4034-8e57-a6575f466c41
+```
+
 Recommended setup:
 
 - Do not rely on Netlify build from Git pushes.
