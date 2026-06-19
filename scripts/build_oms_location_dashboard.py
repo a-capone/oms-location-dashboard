@@ -28,6 +28,7 @@ DEFAULT_REMOTE_DIRS = ["/report/Outbound/Uscite", "/report/Outbound"]
 DEFAULT_INVENTORY_LOCATIONS = "TLTEMP0048,TLITWH0048,TLITGX0048"
 DEFAULT_TOKEN_URL = "https://integrations.thelevelgroup.com/identity/oauth2/token"
 DEFAULT_INVENTORY_URL = "https://integrations.thelevelgroup.com/invapp-dab-prod/v2/InventoryWmsMonitoring"
+INVENTORY_HISTORY_LIMIT = 168
 
 GEODIS_STATUS = {
     "1": "INTEGRATO",
@@ -117,6 +118,7 @@ def fetch_bigquery_rows() -> list[dict[str, Any]]:
       is_canceled,
       is_ready
     FROM `{VIEW_ID}`
+    WHERE shipment_status != 'CANCELED'
     ORDER BY attention_sort, days_since_update DESC, assigned_location_code, external_order_id, oms_shipment_number
     """
     rows: list[dict[str, Any]] = []
@@ -347,6 +349,69 @@ def fetch_inventory_rows() -> dict[str, Any]:
     }
 
 
+def inventory_quantity_map(inventory: dict[str, Any]) -> dict[str, int | None]:
+    out: dict[str, int | None] = {}
+    for row in inventory.get("rows", []):
+        if not isinstance(row, dict):
+            continue
+        location = row.get("locationName")
+        if not location:
+            continue
+        quantity = row.get("quantity")
+        try:
+            out[str(location)] = int(quantity)
+        except (TypeError, ValueError):
+            out[str(location)] = None
+    return out
+
+
+def extract_payload_from_html(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    html = path.read_text(encoding="utf-8", errors="ignore")
+    match = re.search(r"window\.OMS_DASHBOARD_DATA = (.*?);\s*</script>", html, flags=re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1))
+    except json.JSONDecodeError:
+        return None
+
+
+def previous_inventory_history(output: Path) -> list[dict[str, Any]]:
+    candidates = []
+    previous_html = os.environ.get("DASHBOARD_PREVIOUS_HTML")
+    if previous_html:
+        candidates.append(Path(previous_html))
+    candidates.append(output)
+
+    for candidate in candidates:
+        payload = extract_payload_from_html(candidate)
+        if not payload:
+            continue
+        history = ((payload.get("inventory") or {}).get("history") or [])
+        if isinstance(history, list):
+            return [item for item in history if isinstance(item, dict)]
+    return []
+
+
+def append_inventory_history(history: list[dict[str, Any]], inventory: dict[str, Any]) -> list[dict[str, Any]]:
+    quantities = inventory_quantity_map(inventory)
+    point = {
+        "fetchedAtUtc": inventory.get("fetchedAtUtc"),
+        "TLTEMP0048": quantities.get("TLTEMP0048"),
+        "TLITWH0048": quantities.get("TLITWH0048"),
+        "TLITGX0048": quantities.get("TLITGX0048"),
+    }
+    if not point["fetchedAtUtc"]:
+        return history[-INVENTORY_HISTORY_LIMIT:]
+
+    cleaned = [item for item in history if item.get("fetchedAtUtc") != point["fetchedAtUtc"]]
+    cleaned.append(point)
+    cleaned.sort(key=lambda item: str(item.get("fetchedAtUtc") or ""))
+    return cleaned[-INVENTORY_HISTORY_LIMIT:]
+
+
 def replace_inline_payload(index_html: Path, payload: dict[str, Any]) -> None:
     html = index_html.read_text(encoding="utf-8")
     data = "window.OMS_DASHBOARD_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
@@ -370,7 +435,10 @@ def build_payload(
     geodis_index_size: int,
     geodis_matches: int,
     inventory: dict[str, Any],
+    inventory_history: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    inventory = dict(inventory)
+    inventory["history"] = inventory_history
     return {
         "generatedAtUtc": datetime.now(timezone.utc).isoformat(),
         "source": VIEW_ID,
@@ -399,6 +467,7 @@ def main() -> None:
 
     output = Path(args.output)
     rows = fetch_bigquery_rows()
+    prior_inventory_history = previous_inventory_history(output)
 
     sftp = connect_sftp()
     try:
@@ -410,7 +479,8 @@ def main() -> None:
     geodis_index = parse_geodis_excel(local_file, latest)
     enriched, matches = enrich_with_geodis(rows, geodis_index)
     inventory = fetch_inventory_rows()
-    payload = build_payload(enriched, latest, len(geodis_index), matches, inventory)
+    inventory_history = append_inventory_history(prior_inventory_history, inventory)
+    payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history)
     replace_inline_payload(output, payload)
 
     print(json.dumps({
@@ -421,6 +491,7 @@ def main() -> None:
         "geodis_matched_shipments": matches,
         "inventory_locations": inventory["locations"],
         "inventory_rows": inventory["rowCount"],
+        "inventory_history_points": len(inventory_history),
     }, indent=2, ensure_ascii=False))
 
 

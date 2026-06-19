@@ -400,6 +400,38 @@
       align-items: start;
     }
 
+    .inventory-flow {
+      display: grid;
+      gap: 12px;
+    }
+
+    .flow-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr) 88px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .trend-bars {
+      display: flex;
+      align-items: end;
+      gap: 4px;
+      min-height: 128px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-2);
+      overflow: hidden;
+    }
+
+    .trend-bar {
+      flex: 1 1 8px;
+      min-width: 5px;
+      height: var(--h);
+      border-radius: 4px 4px 0 0;
+      background: var(--green);
+    }
+
     .metric-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 52px;
@@ -897,11 +929,11 @@
           <section class="panel">
             <div class="panel-head">
               <div>
-                <h2 class="panel-title">Quantita per location</h2>
-                <p class="panel-subtitle" id="inventorySubtitle">Ultimo dato inventory API.</p>
+                <h2 class="panel-title">Ingresso merce in GXO</h2>
+                <p class="panel-subtitle" id="inventorySubtitle">TEMP resta congelato, GXO misura la merce entrata.</p>
               </div>
             </div>
-            <div class="panel-body mini-list" id="inventoryChart"></div>
+            <div class="panel-body inventory-flow" id="inventoryChart"></div>
           </section>
           <section class="panel">
             <div class="panel-head">
@@ -923,6 +955,18 @@
               </table>
             </div>
           </section>
+        </section>
+        <section class="panel table-panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Trend ingresso GXO</h2>
+              <p class="panel-subtitle">Ultimi refresh disponibili nel payload pubblicato.</p>
+            </div>
+            <span class="pill mono" id="inventoryHistoryCount"></span>
+          </div>
+          <div class="panel-body">
+            <div class="trend-bars" id="inventoryTrendChart"></div>
+          </div>
         </section>
       </section>
     </main>
@@ -1022,6 +1066,8 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       inventorySubtitle: document.getElementById("inventorySubtitle"),
       inventoryChart: document.getElementById("inventoryChart"),
       inventoryTableBody: document.getElementById("inventoryTableBody"),
+      inventoryHistoryCount: document.getElementById("inventoryHistoryCount"),
+      inventoryTrendChart: document.getElementById("inventoryTrendChart"),
       drawer: document.getElementById("drawer"),
       drawerTitle: document.getElementById("drawerTitle"),
       drawerSubtitle: document.getElementById("drawerSubtitle"),
@@ -1217,14 +1263,12 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
 
     function renderKpis(rows) {
       const readyRows = rows.filter((row) => row.shipment_status === "READY");
-      const canceledRows = rows.filter((row) => row.shipment_status === "CANCELED");
       const staleRows = rows.filter((row) => row.attention_bucket === "Stale >7 days");
       const geodisRows = rows.filter((row) => row.geodis_found === true || row.geodis_found === "true");
       const kpis = [
         { label: "Ordini distinti", value: distinctCount(rows, "order_number"), note: `${compactNumber(rows.length)} shipment`, cls: "" },
         { label: "Ordini ready", value: distinctCount(readyRows, "order_number"), note: `${compactNumber(readyRows.length)} shipment operative`, cls: "ready" },
         { label: "Stale >7 giorni", value: distinctCount(staleRows, "order_number"), note: `${compactNumber(staleRows.length)} shipment da verificare`, cls: "stale" },
-        { label: "Cancellati", value: distinctCount(canceledRows, "order_number"), note: `${compactNumber(canceledRows.length)} shipment`, cls: "canceled" },
         { label: "Match Geodis", value: distinctCount(geodisRows, "order_number"), note: `${compactNumber(geodisRows.length)} shipment nel file Uscite`, cls: "ready" },
         { label: "Shipment", value: rows.length, note: `${compactNumber(distinctCount(rows, "oms_shipment_number"))} OMS shipment`, cls: "shipments" }
       ];
@@ -1389,7 +1433,6 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
         ["TLTEMP0048", "location", "TLTEMP0048"],
         ["TLITWH0048", "location", "TLITWH0048"],
         ["READY", "status", "READY"],
-        ["CANCELED", "status", "CANCELED"],
         ["Stale >7 days", "attention", "Stale >7 days"],
         ["Packed Geodis", "geodis", "PACKED (MA NON BORDERIZZATO)"],
         ["Shipped Geodis", "geodis", "SHIPPED"]
@@ -1427,8 +1470,20 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
     }
 
     function renderInventory() {
-      const totalQuantity = inventoryRows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
-      const maxQuantity = Math.max(...inventoryRows.map((row) => Number(row.quantity) || 0), 0);
+      const byLocation = Object.fromEntries(inventoryRows.map((row) => [row.locationName, Number(row.quantity) || 0]));
+      const gxoQuantity = byLocation.TLITGX0048 || 0;
+      const tempQuantity = byLocation.TLTEMP0048 || 0;
+      const whQuantity = byLocation.TLITWH0048 || 0;
+      const movementBase = tempQuantity || null;
+      const movementPct = movementBase ? (gxoQuantity / movementBase) * 100 : null;
+      const history = payload.inventory?.history || [];
+      const firstPoint = history[0] || null;
+      const previousPoint = history.length > 1 ? history[history.length - 2] : null;
+      const firstGxo = Number(firstPoint?.TLITGX0048);
+      const previousGxo = Number(previousPoint?.TLITGX0048);
+      const deltaFromStart = Number.isFinite(firstGxo) ? gxoQuantity - firstGxo : 0;
+      const deltaFromPrevious = Number.isFinite(previousGxo) ? gxoQuantity - previousGxo : 0;
+      const maxQuantity = Math.max(gxoQuantity, tempQuantity, whQuantity, 1);
       const latestUpdate = inventoryRows
         .map((row) => row.updatedAt)
         .filter(Boolean)
@@ -1436,9 +1491,11 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
         .at(-1);
 
       el.inventoryKpiGrid.innerHTML = [
-        { label: "Quantita totale", value: totalQuantity, note: `${compactNumber(inventoryRows.length)} location`, cls: "ready" },
-        { label: "Location lette", value: inventoryRows.length, note: payload.inventory?.locations || "n/a", cls: "" },
-        { label: "Max location", value: maxQuantity, note: "quantita piu alta", cls: "shipments" },
+        { label: "GXO ingresso", value: gxoQuantity, note: "TLITGX0048", cls: "ready" },
+        { label: "TEMP congelato", value: tempQuantity, note: "TLTEMP0048, baseline", cls: "shipments" },
+        { label: "Delta ultimo refresh", value: signedNumber(deltaFromPrevious), note: "variazione GXO", cls: deltaFromPrevious >= 0 ? "ready" : "canceled" },
+        { label: "Delta da inizio", value: signedNumber(deltaFromStart), note: "rispetto al primo punto storico", cls: deltaFromStart >= 0 ? "ready" : "canceled" },
+        { label: "GXO vs TEMP", value: movementPct === null ? "n/a" : `${movementPct.toFixed(1)}%`, note: "lettura indicativa sul congelato TEMP", cls: "stale" },
         { label: "Inventory update", value: latestUpdate ? dateLabel(latestUpdate) : "n/a", note: "ultimo aggiornamento WMS", cls: "" }
       ].map((kpi) => `
         <article class="kpi ${kpi.cls}">
@@ -1449,22 +1506,28 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       `).join("");
 
       el.inventorySubtitle.textContent = payload.inventory?.fetchedAtUtc
-        ? `Letto alle ${dateLabel(payload.inventory.fetchedAtUtc)}.`
+        ? `Letto alle ${dateLabel(payload.inventory.fetchedAtUtc)}. Il valore da monitorare e TLITGX0048.`
         : "Dato inventario non disponibile.";
 
-      const sorted = [...inventoryRows].sort((a, b) => (Number(b.quantity) || 0) - (Number(a.quantity) || 0));
-      el.inventoryChart.innerHTML = sorted.map((row) => {
+      const flowRows = [
+        { label: "GXO ingresso", location: "TLITGX0048", quantity: gxoQuantity, color: "#147a43" },
+        { label: "TEMP congelato", location: "TLTEMP0048", quantity: tempQuantity, color: "#6d41d9" },
+        { label: "Warehouse 0048", location: "TLITWH0048", quantity: whQuantity, color: "#64748b" }
+      ];
+      el.inventoryChart.innerHTML = flowRows.map((row) => {
         const qty = Number(row.quantity) || 0;
         const width = maxQuantity ? `${Math.max(4, (qty / maxQuantity) * 100)}%` : "0%";
         return `
-          <div class="metric-row">
-            <span class="metric-label">${escapeHtml(value(row, "locationName"))}</span>
+          <div class="flow-row">
+            <span class="metric-label">${escapeHtml(row.label)}<br><span class="mono">${escapeHtml(row.location)}</span></span>
+            <span class="meter"><span style="--w:${width}; --c:${row.color}"></span></span>
             <span class="metric-value">${compactNumber(qty)}</span>
-            <span class="meter"><span style="--w:${width}; --c:#147a43"></span></span>
           </div>
         `;
-      }).join("") || `<div class="empty">Nessun dato inventario nello snapshot.</div>`;
+      }).join("");
 
+      renderInventoryTrend(history);
+      const sorted = [...inventoryRows].sort((a, b) => String(a.locationName).localeCompare(String(b.locationName)));
       el.inventoryTableBody.innerHTML = sorted.map((row) => `
         <tr>
           <td class="mono">${escapeHtml(value(row, "locationName"))}</td>
@@ -1474,8 +1537,28 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       `).join("") || `<tr><td class="empty" colspan="3">Nessun dato inventario disponibile.</td></tr>`;
     }
 
+    function renderInventoryTrend(history) {
+      const clean = (history || []).filter((point) => Number.isFinite(Number(point.TLITGX0048))).slice(-48);
+      el.inventoryHistoryCount.textContent = `${compactNumber(clean.length)} punti`;
+      if (!clean.length) {
+        el.inventoryTrendChart.innerHTML = `<div class="empty">Lo storico partira dal prossimo refresh pubblicato.</div>`;
+        return;
+      }
+      const max = Math.max(...clean.map((point) => Number(point.TLITGX0048) || 0), 1);
+      el.inventoryTrendChart.innerHTML = clean.map((point) => {
+        const qty = Number(point.TLITGX0048) || 0;
+        const height = `${Math.max(4, (qty / max) * 100)}%`;
+        return `<span class="trend-bar" title="${escapeHtml(dateLabel(point.fetchedAtUtc))}: ${compactNumber(qty)}" style="--h:${height}"></span>`;
+      }).join("");
+    }
+
     function compactNumberOrText(valueToFormat) {
       return typeof valueToFormat === "number" ? compactNumber(valueToFormat) : valueToFormat;
+    }
+
+    function signedNumber(valueToFormat) {
+      const number = Number(valueToFormat) || 0;
+      return `${number >= 0 ? "+" : ""}${compactNumber(number)}`;
     }
 
     function tag(name) {

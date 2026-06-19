@@ -17,8 +17,19 @@ Workflow:
 1. Reads OMS/Kibo data from BigQuery view `tlg-business-intelligence-prd.til.v_oms_active_location_dashboard`.
 2. Reads the latest Geodis `Uscite_*.xlsx` from SFTP.
 3. Calls `InventoryWmsMonitoring` for the three dashboard locations.
-4. Writes the refreshed mono-file to `tmp/index.html`.
-5. Deploys `tmp/` to Netlify production.
+4. Downloads the previous deployed `index.html` from Netlify when available, so the inventory tab can preserve GXO history.
+5. Writes the refreshed mono-file to `tmp/index.html`.
+6. Deploys `tmp/` to Netlify production.
+
+## Inventory Reading
+
+The inventory tab is intentionally not a total stock view. It tracks the temporary migration from TEMP to GXO:
+
+- `TLTEMP0048`: frozen TEMP baseline.
+- `TLITGX0048`: quantity entering GXO, the primary value to monitor.
+- `TLITWH0048`: supporting warehouse quantity.
+
+The dashboard shows GXO current quantity, TEMP frozen quantity, GXO delta from the previous refresh, GXO delta from the first retained history point, and a compact GXO trend chart.
 
 ## Required GitHub Secrets
 

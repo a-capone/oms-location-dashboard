@@ -35,9 +35,51 @@ jobs:
         env:
           GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
 
+      - name: Download previous deployed dashboard
+        shell: bash
+        run: |
+          mkdir -p runtime
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          token = os.environ.get("NETLIFY_AUTH_TOKEN")
+          site_id = os.environ.get("NETLIFY_SITE_ID")
+          if not token or not site_id:
+              raise SystemExit(0)
+
+          request = urllib.request.Request(
+              f"https://api.netlify.com/api/v1/sites/{site_id}",
+              headers={"Authorization": f"Bearer {token}"},
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  site = json.loads(response.read().decode("utf-8"))
+          except Exception:
+              raise SystemExit(0)
+
+          base_url = site.get("ssl_url") or site.get("url")
+          if not base_url:
+              raise SystemExit(0)
+
+          try:
+              with urllib.request.urlopen(base_url.rstrip("/") + "/index.html", timeout=30) as response:
+                  html = response.read()
+          except Exception:
+              raise SystemExit(0)
+
+          with open("runtime/previous-index.html", "wb") as handle:
+              handle.write(html)
+          PY
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
       - name: Refresh mono-file dashboard
         run: python scripts/build_oms_location_dashboard.py --output tmp/index.html
         env:
+          DASHBOARD_PREVIOUS_HTML: runtime/previous-index.html
           GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
           GEODIS_SFTP_USER: stnetlglog.geodis
           GEODIS_SFTP_PORT: "22"
