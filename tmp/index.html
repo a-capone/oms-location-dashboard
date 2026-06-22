@@ -850,6 +850,7 @@
         <nav class="sub-tabs" aria-label="Shipment per location">
           <button class="sub-tab-button active" type="button" id="tempTabBtn" data-subtab="tempPanel">FE Temporary (<span id="tempTabCount">0</span>)</button>
           <button class="sub-tab-button" type="button" id="whTabBtn" data-subtab="whPanel">CSG Location (<span id="whTabCount">0</span>)</button>
+          <button class="sub-tab-button" type="button" id="gxoTabBtn" data-subtab="gxoPanel">GXO 0048 (<span id="gxoTabCount">0</span>)</button>
           <button class="sub-tab-button" type="button" id="allTabBtn" data-subtab="allPanel">All Orders (<span id="allTabCount">0</span>)</button>
         </nav>
 
@@ -906,6 +907,35 @@
                 </tr>
               </thead>
               <tbody id="whTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="sub-tab-panel" id="gxoPanel">
+        <section class="panel table-panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">GXO 0048 - Shipments</h2>
+              <p class="panel-subtitle">GXO target location (TLITGX0048) - spedizioni assegnate alla location definitiva.</p>
+            </div>
+            <span class="pill mono" id="gxoTableCount"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Order Number</th>
+                  <th>OMS Shipment</th>
+                  <th>Brand</th>
+                  <th>OMS Status</th>
+                  <th>Dashboard State</th>
+                  <th>Geodis Status</th>
+                  <th>Last Update</th>
+                  <th>Days since update</th>
+                </tr>
+              </thead>
+              <tbody id="gxoTableBody"></tbody>
             </table>
           </div>
         </section>
@@ -1033,6 +1063,9 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       whTableBody: document.getElementById("whTableBody"),
       whTableCount: document.getElementById("whTableCount"),
       whTabCount: document.getElementById("whTabCount"),
+      gxoTableBody: document.getElementById("gxoTableBody"),
+      gxoTableCount: document.getElementById("gxoTableCount"),
+      gxoTabCount: document.getElementById("gxoTabCount"),
       allTableBody: document.getElementById("allTableBody"),
       allTableCount: document.getElementById("allTableCount"),
       allTabCount: document.getElementById("allTabCount"),
@@ -1191,8 +1224,10 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
     function render() {
       const tempRows = allRows.filter((row) => row.assigned_location_code === "TLTEMP0048");
       const whRows = allRows.filter((row) => row.assigned_location_code === "TLITWH0048");
+      const gxoRows = allRows.filter((row) => row.assigned_location_code === "TLITGX0048");
       renderSubTable(el.tempTableBody, el.tempTableCount, el.tempTabCount, tempRows);
       renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows);
+      renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows);
       renderSubTable(el.allTableBody, el.allTableCount, el.allTabCount, allRows);
       renderInventory();
     }
