@@ -19,5 +19,8 @@ runtime/
 Thumbs.db
 .vscode/
 
+# Generated dashboard output (built from templates/dashboard.html)
+tmp/index.html
+
 # Local Netlify folder
 .netlify

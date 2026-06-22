@@ -24,6 +24,7 @@ PROJECT = "tlg-business-intelligence-prd"
 VIEW_ID = "tlg-business-intelligence-prd.til.v_oms_active_location_dashboard"
 
 DEFAULT_OUTPUT = Path("tmp/index.html")
+DEFAULT_TEMPLATE = Path("templates/dashboard.html")
 DEFAULT_REMOTE_DIRS = ["/report/Outbound/Uscite", "/report/Outbound"]
 DEFAULT_INVENTORY_LOCATIONS = "TLTEMP0048,TLITWH0048,TLITGX0048"
 DEFAULT_TOKEN_URL = "https://integrations.thelevelgroup.com/identity/oauth2/token"
@@ -412,21 +413,14 @@ def append_inventory_history(history: list[dict[str, Any]], inventory: dict[str,
     return cleaned[-INVENTORY_HISTORY_LIMIT:]
 
 
-def replace_inline_payload(index_html: Path, payload: dict[str, Any]) -> None:
-    html = index_html.read_text(encoding="utf-8")
-    data = "window.OMS_DASHBOARD_DATA = " + json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + ";\n"
-    replacement = "<script>\n" + data + "</script>"
-    new_html, count = re.subn(
-        r"<script>\s*window\.OMS_DASHBOARD_DATA = .*?;\s*</script>",
-        replacement,
-        html,
-        count=1,
-        flags=re.DOTALL,
-    )
-    if count != 1:
-        raise RuntimeError(f"Could not find inline OMS_DASHBOARD_DATA block in {index_html}")
-    index_html.parent.mkdir(parents=True, exist_ok=True)
-    index_html.write_text(new_html, encoding="utf-8")
+def render_template(template: Path, output: Path, payload: dict[str, Any]) -> None:
+    html = template.read_text(encoding="utf-8")
+    data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    new_html = html.replace("__OMS_DATA__", data, 1)
+    if new_html == html:
+        raise RuntimeError(f"Placeholder __OMS_DATA__ not found in template {template}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(new_html, encoding="utf-8")
 
 
 def build_payload(
@@ -461,11 +455,16 @@ def build_payload(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build the mono-file OMS dashboard with BigQuery and Geodis SFTP Excel data.")
-    parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help="Path to mono-file HTML output, default tmp/index.html")
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help="Path to HTML output, default tmp/index.html")
+    parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="Path to HTML template, default templates/dashboard.html")
     parser.add_argument("--cache-dir", default="runtime/geodis", help="Local cache for downloaded Geodis Excel files")
     args = parser.parse_args()
 
     output = Path(args.output)
+    template = Path(args.template)
+    if not template.exists():
+        raise RuntimeError(f"Template not found: {template}")
+
     rows = fetch_bigquery_rows()
     prior_inventory_history = previous_inventory_history(output)
 
@@ -481,7 +480,7 @@ def main() -> None:
     inventory = fetch_inventory_rows()
     inventory_history = append_inventory_history(prior_inventory_history, inventory)
     payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history)
-    replace_inline_payload(output, payload)
+    render_template(template, output, payload)
 
     print(json.dumps({
         "output": str(output),
