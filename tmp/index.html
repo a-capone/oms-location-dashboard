@@ -308,6 +308,14 @@
       background: var(--surface-2);
     }
 
+    .panel-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .panel-title {
       margin: 0;
       font-size: 14px;
@@ -861,7 +869,10 @@
               <h2 class="panel-title">FE Temporary - Shipments</h2>
               <p class="panel-subtitle">FE Temporary Location (TLTEMP0048).</p>
             </div>
-            <span class="pill mono" id="tempTableCount"></span>
+            <div class="panel-actions">
+              <span class="pill mono" id="tempTableCount"></span>
+              <button class="button" type="button" data-export-location="TLTEMP0048" data-export-name="fe-temporary">Scarica CSV</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -890,7 +901,10 @@
               <h2 class="panel-title">CSG Location - Shipments</h2>
               <p class="panel-subtitle">CSG Location (TLITWH0048) - spedizioni aged non aggiornate sul WMS.</p>
             </div>
-            <span class="pill mono" id="whTableCount"></span>
+            <div class="panel-actions">
+              <span class="pill mono" id="whTableCount"></span>
+              <button class="button" type="button" data-export-location="TLITWH0048" data-export-name="csg-location">Scarica CSV</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -919,7 +933,10 @@
               <h2 class="panel-title">GXO 0048 - Shipments</h2>
               <p class="panel-subtitle">GXO target location (TLITGX0048) - spedizioni assegnate alla location definitiva.</p>
             </div>
-            <span class="pill mono" id="gxoTableCount"></span>
+            <div class="panel-actions">
+              <span class="pill mono" id="gxoTableCount"></span>
+              <button class="button" type="button" data-export-location="TLITGX0048" data-export-name="gxo-0048">Scarica CSV</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -948,7 +965,10 @@
               <h2 class="panel-title">All Orders</h2>
               <p class="panel-subtitle">Tutti gli ordini attivi su FE Temporary, CSG Location e GXO 0048.</p>
             </div>
-            <span class="pill mono" id="allTableCount"></span>
+            <div class="panel-actions">
+              <span class="pill mono" id="allTableCount"></span>
+              <button class="button" type="button" data-export-location="ALL" data-export-name="all-orders">Scarica CSV</button>
+            </div>
           </div>
           <div class="table-wrap">
             <table>
@@ -1200,6 +1220,12 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
         button.addEventListener("click", () => {
           document.querySelectorAll(".tab-button").forEach((node) => node.classList.toggle("active", node === button));
           document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.id === `${button.dataset.tab}Panel`));
+        });
+      });
+
+      document.querySelectorAll("[data-export-location]").forEach((button) => {
+        button.addEventListener("click", () => {
+          exportLocationCsv(button.dataset.exportLocation, button.dataset.exportName);
         });
       });
     }
@@ -1590,40 +1616,59 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       state.selectedRow = null;
     }
 
-    function exportCsv() {
-      const rows = sortedRows(filteredRows());
+    const exportColumns = [
+      "assigned_location_code",
+      "location_label",
+      "external_order_id",
+      "order_number",
+      "oms_shipment_number",
+      "shipment_order_number",
+      "brand",
+      "shipment_status",
+      "fulfillment_status",
+      "dashboard_state",
+      "attention_bucket",
+      "geodis_status_code",
+      "geodis_status_label",
+      "geodis_reference",
+      "geodis_source_file",
+      "days_since_update",
+      "days_since_creation",
+      "update_datetime_rome"
+    ];
+
+    function downloadCsv(rows, fileName) {
+      if (!rows.length) {
+        toast("Nessuna riga da esportare");
+        return;
+      }
       const columns = [
-        "assigned_location_code",
-        "location_label",
-        "external_order_id",
-        "order_number",
-        "oms_shipment_number",
-        "shipment_order_number",
-        "brand",
-        "shipment_status",
-        "fulfillment_status",
-        "dashboard_state",
-        "attention_bucket",
-        "geodis_status_code",
-        "geodis_status_label",
-        "geodis_reference",
-        "geodis_source_file",
-        "days_since_update",
-        "days_since_creation",
-        "update_datetime_rome"
+        ...exportColumns
       ];
       const csv = [
         columns.join(","),
         ...rows.map((row) => columns.map((column) => csvCell(row[column])).join(","))
       ].join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = "oms-location-0048-dashboard.csv";
+      link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
-      toast("CSV esportato");
+      toast(`${compactNumber(rows.length)} righe esportate`);
+    }
+
+    function exportLocationCsv(locationCode, name) {
+      const rows = locationCode === "ALL"
+        ? allRows
+        : allRows.filter((row) => row.assigned_location_code === locationCode);
+      const sorted = [...rows].sort((a, b) => (Number(b.days_since_update) || 0) - (Number(a.days_since_update) || 0));
+      downloadCsv(sorted, `oms-location-0048-${name || String(locationCode).toLowerCase()}.csv`);
+    }
+
+    function exportCsv() {
+      downloadCsv(sortedRows(filteredRows()), "oms-location-0048-dashboard.csv");
     }
 
     function csvCell(valueToWrite) {

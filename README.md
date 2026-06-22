@@ -9,6 +9,7 @@ Static GitHub Pages dashboard for OMS/Kibo shipments, Geodis outbound status and
 The published site is the single file in `tmp/index.html`.
 
 The Shipments view exposes dedicated tabs for `TLTEMP0048`, `TLITWH0048`, `TLITGX0048`, plus an all-locations view.
+Each tab can be downloaded as CSV from the table header.
 
 Default Pages URL:
 
