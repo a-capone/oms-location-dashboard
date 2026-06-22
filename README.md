@@ -1,12 +1,18 @@
 # OMS Location Dashboard
 
-Static Netlify dashboard for OMS/Kibo shipments, Geodis outbound status and WMS inventory for:
+Static GitHub Pages dashboard for OMS/Kibo shipments, Geodis outbound status and WMS inventory for:
 
 - `TLTEMP0048`
 - `TLITWH0048`
 - `TLITGX0048`
 
 The published site is the single file in `tmp/index.html`.
+
+Default Pages URL:
+
+```text
+https://a-capone.github.io/oms-location-dashboard/
+```
 
 ## Refresh
 
@@ -17,9 +23,9 @@ Workflow:
 1. Reads OMS/Kibo data from BigQuery view `tlg-business-intelligence-prd.til.v_oms_active_location_dashboard`.
 2. Reads the latest Geodis `Uscite_*.xlsx` from SFTP.
 3. Calls `InventoryWmsMonitoring` for the three dashboard locations.
-4. Downloads the previous deployed `index.html` from Netlify when available, so the inventory tab can preserve GXO history.
+4. Downloads the previous deployed `index.html` from GitHub Pages when available, so the inventory tab can preserve GXO history.
 5. Writes the refreshed mono-file to `tmp/index.html`.
-6. Deploys `tmp/` to Netlify production.
+6. Deploys `tmp/` to GitHub Pages.
 
 ## Inventory Reading
 
@@ -39,8 +45,10 @@ Configure these repository secrets before relying on the scheduled workflow:
 - `GEODIS_SFTP_PASSWORD`: Geodis SFTP password.
 - `INVAPP_CLIENT_ID`: OAuth client id for the inventory API.
 - `INVAPP_CLIENT_SECRET`: OAuth client secret for the inventory API.
-- `NETLIFY_AUTH_TOKEN`: Netlify personal access token.
-- `NETLIFY_SITE_ID`: Netlify site id.
+
+Optional repository variable:
+
+- `DASHBOARD_PUBLIC_URL`: deployed dashboard base URL, only needed if the site uses a custom domain or a non-default Pages URL.
 
 ## Local Build
 

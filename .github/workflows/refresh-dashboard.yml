@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: oms-dashboard-refresh
@@ -15,6 +17,9 @@ concurrency:
 jobs:
   refresh-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,28 +45,14 @@ jobs:
         run: |
           mkdir -p runtime
           python - <<'PY'
-          import json
           import os
           import urllib.request
 
-          token = os.environ.get("NETLIFY_AUTH_TOKEN")
-          site_id = os.environ.get("NETLIFY_SITE_ID")
-          if not token or not site_id:
-              raise SystemExit(0)
-
-          request = urllib.request.Request(
-              f"https://api.netlify.com/api/v1/sites/{site_id}",
-              headers={"Authorization": f"Bearer {token}"},
-          )
-          try:
-              with urllib.request.urlopen(request, timeout=30) as response:
-                  site = json.loads(response.read().decode("utf-8"))
-          except Exception:
-              raise SystemExit(0)
-
-          base_url = site.get("ssl_url") or site.get("url")
+          base_url = os.environ.get("DASHBOARD_PUBLIC_URL", "").strip()
           if not base_url:
-              raise SystemExit(0)
+              owner = os.environ["GITHUB_REPOSITORY_OWNER"]
+              repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
+              base_url = f"https://{owner}.github.io/{repo}"
 
           try:
               with urllib.request.urlopen(base_url.rstrip("/") + "/index.html", timeout=30) as response:
@@ -73,8 +64,7 @@ jobs:
               handle.write(html)
           PY
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          DASHBOARD_PUBLIC_URL: ${{ vars.DASHBOARD_PUBLIC_URL }}
 
       - name: Refresh mono-file dashboard
         run: python scripts/build_oms_location_dashboard.py --output tmp/index.html
@@ -88,16 +78,14 @@ jobs:
           INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
           INVAPP_LOCATIONS: TLTEMP0048,TLITWH0048,TLITGX0048
 
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v3.0
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          publish-dir: ./tmp
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Refresh OMS dashboard"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-          overwrites-pull-request-comment: false
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          path: ./tmp
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
