@@ -832,6 +832,101 @@
         scroll-behavior: auto !important;
       }
     }
+
+    /* ── OMS Status Summary ─────────────────────────────────────── */
+    .oms-stat-summary {
+      margin-bottom: 14px;
+    }
+
+    .oms-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .oms-stat-card {
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--oms-c, var(--muted));
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      box-shadow: 0 1px 2px rgba(16,18,20,.04);
+    }
+
+    .oms-stat-value {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--oms-c, var(--ink));
+      font-variant-numeric: tabular-nums;
+    }
+
+    .oms-stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    /* OMS Legend */
+    .oms-legend-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .oms-legend-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 10px;
+    }
+
+    .oms-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 8px 16px;
+    }
+
+    .oms-legend-item {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .oms-legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      margin-top: 3px;
+    }
+
+    .oms-legend-item-text strong {
+      display: block;
+      font-size: 12px;
+      color: var(--ink-2);
+    }
+
+    .oms-legend-item-text span {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1120px) {
+      .oms-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 720px) {
+      .oms-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -862,7 +957,49 @@
           <button class="sub-tab-button" type="button" id="allTabBtn" data-subtab="allPanel">All Orders (<span id="allTabCount">0</span>)</button>
         </nav>
 
+        <div class="oms-legend-panel">
+          <div class="oms-legend-title">Legenda OMS Status</div>
+          <div class="oms-legend-grid">
+            <div class="oms-legend-item">
+              <span class="oms-legend-dot" style="background:#2563eb"></span>
+              <div class="oms-legend-item-text">
+                <strong>Accept Shipment / Validate Items In Stock</strong>
+                <span>GXO deve ancora prelevare la spedizione</span>
+              </div>
+            </div>
+            <div class="oms-legend-item">
+              <span class="oms-legend-dot" style="background:#6d41d9"></span>
+              <div class="oms-legend-item-text">
+                <strong>Print Packing Slip</strong>
+                <span>Disallineamento OMS — verificare con team TECH</span>
+              </div>
+            </div>
+            <div class="oms-legend-item">
+              <span class="oms-legend-dot" style="background:#b25b00"></span>
+              <div class="oms-legend-item-text">
+                <strong>Wait for Payment Confirmation</strong>
+                <span>GXO ha prelevato la spedizione — in attesa di fatturazione</span>
+              </div>
+            </div>
+            <div class="oms-legend-item">
+              <span class="oms-legend-dot" style="background:#147a43"></span>
+              <div class="oms-legend-item-text">
+                <strong>Prepare for Shipment</strong>
+                <span>Ordine packed — in attesa di essere spedito</span>
+              </div>
+            </div>
+            <div class="oms-legend-item">
+              <span class="oms-legend-dot" style="background:#059669"></span>
+              <div class="oms-legend-item-text">
+                <strong>Fulfilled</strong>
+                <span>Spedizione già spedita</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       <section class="sub-tab-panel active" id="tempPanel">
+        <div class="oms-stat-summary" id="tempOmsSummary"></div>
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
@@ -895,6 +1032,7 @@
       </section>
 
       <section class="sub-tab-panel" id="whPanel">
+        <div class="oms-stat-summary" id="whOmsSummary"></div>
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
@@ -927,6 +1065,7 @@
       </section>
 
       <section class="sub-tab-panel" id="gxoPanel">
+        <div class="oms-stat-summary" id="gxoOmsSummary"></div>
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
@@ -959,6 +1098,7 @@
       </section>
 
       <section class="sub-tab-panel" id="allPanel">
+        <div class="oms-stat-summary" id="allOmsSummary"></div>
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
@@ -1026,7 +1166,28 @@
   <div class="toast" id="toast"></div>
 
   <script>
-window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intelligence-prd.til.v_oms_active_location_dashboard","rowCount":0,"lastHourlyRefreshAtUtc":null,"geodis":{"fileName":null,"remoteDir":null,"remotePath":null,"fileSize":0,"fileMtime":0,"indexedReferences":0,"matchedShipments":0,"statusMap":{"1":"INTEGRATO","2":"IN ATTESA DI PICKING/EVASO CON ROTTURE DI STOCK","3":"PICKING","4":"PICKING","5":"PACKING","7":"PACKED (MA NON BORDERIZZATO)","8":"SHIPPED"}},"inventory":{"locations":"TLTEMP0048,TLITWH0048,TLITGX0048","fetchedAtUtc":null,"rowCount":0,"rows":[],"history":[]},"rows":[]};
+window.OMS_DASHBOARD_DATA = {"generatedAtUtc":"2026-06-22T08:00:00Z","source":"tlg-business-intelligence-prd.til.v_oms_active_location_dashboard","rowCount":24,"lastHourlyRefreshAtUtc":"2026-06-22T09:00:00Z","geodis":{"fileName":"uscite_20260622.csv","remoteDir":null,"remotePath":null,"fileSize":0,"fileMtime":0,"indexedReferences":0,"matchedShipments":0,"statusMap":{"1":"INTEGRATO","2":"IN ATTESA DI PICKING/EVASO CON ROTTURE DI STOCK","3":"PICKING","4":"PICKING","5":"PACKING","7":"PACKED (MA NON BORDERIZZATO)","8":"SHIPPED"}},"inventory":{"locations":"TLTEMP0048,TLITWH0048,TLITGX0048","fetchedAtUtc":"2026-06-22T08:00:00Z","rowCount":3,"rows":[{"locationName":"TLTEMP0048","quantity":1200,"updatedAt":"2026-06-22T08:00:00Z"},{"locationName":"TLITWH0048","quantity":340,"updatedAt":"2026-06-22T08:00:00Z"},{"locationName":"TLITGX0048","quantity":890,"updatedAt":"2026-06-22T08:00:00Z"}],"history":[]},"rows":[
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1001","external_order_id":"FE-1001","oms_shipment_number":"SHP-1001","shipment_order_number":"SORD-1001","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Accept Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-20T10:00:00","days_since_update":2,"days_since_creation":5,"attention_sort":2},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1002","external_order_id":"FE-1002","oms_shipment_number":"SHP-1002","shipment_order_number":"SORD-1002","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Accept Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-21T08:00:00","days_since_update":1,"days_since_creation":3,"attention_sort":1},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1003","external_order_id":"FE-1003","oms_shipment_number":"SHP-1003","shipment_order_number":"SORD-1003","brand":"Maserati","shipment_status":"OPEN","fulfillment_status":"Validate Items In Stock","dashboard_state":"Stock validation","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-19T14:00:00","days_since_update":3,"days_since_creation":8,"attention_sort":3},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1004","external_order_id":"FE-1004","oms_shipment_number":"SHP-1004","shipment_order_number":"SORD-1004","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Print Packing Slip","dashboard_state":"Awaiting accept shipment","attention_bucket":"Stale >7 days","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-12T09:00:00","days_since_update":10,"days_since_creation":15,"attention_sort":10},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1005","external_order_id":"FE-1005","oms_shipment_number":"SHP-1005","shipment_order_number":"SORD-1005","brand":"Maserati","shipment_status":"OPEN","fulfillment_status":"Wait for Payment Confirmation","dashboard_state":"Payment wait","attention_bucket":"Operational queue","geodis_status_label":"PICKING","geodis_status_code":"3","geodis_reference":"GEO-1005","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-21T16:00:00","days_since_update":1,"days_since_creation":4,"attention_sort":1},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1006","external_order_id":"FE-1006","oms_shipment_number":"SHP-1006","shipment_order_number":"SORD-1006","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Prepare for Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"PACKING","geodis_status_code":"5","geodis_reference":"GEO-1006","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T07:00:00","days_since_update":0,"days_since_creation":2,"attention_sort":0},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1007","external_order_id":"FE-1007","oms_shipment_number":"SHP-1007","shipment_order_number":"SORD-1007","brand":"Alfa Romeo","shipment_status":"OPEN","fulfillment_status":"Fulfilled","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"SHIPPED","geodis_status_code":"8","geodis_reference":"GEO-1007","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T06:00:00","days_since_update":0,"days_since_creation":1,"attention_sort":0},
+  {"assigned_location_code":"TLTEMP0048","location_label":"FE Temporary","order_number":"ORD-1008","external_order_id":"FE-1008","oms_shipment_number":"SHP-1008","shipment_order_number":"SORD-1008","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Accept Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Stale >7 days","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-10T10:00:00","days_since_update":12,"days_since_creation":18,"attention_sort":12},
+  {"assigned_location_code":"TLITWH0048","location_label":"CSG Location","order_number":"ORD-2001","external_order_id":"FE-2001","oms_shipment_number":"SHP-2001","shipment_order_number":"SORD-2001","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Accept Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-21T11:00:00","days_since_update":1,"days_since_creation":6,"attention_sort":1},
+  {"assigned_location_code":"TLITWH0048","location_label":"CSG Location","order_number":"ORD-2002","external_order_id":"FE-2002","oms_shipment_number":"SHP-2002","shipment_order_number":"SORD-2002","brand":"Maserati","shipment_status":"OPEN","fulfillment_status":"Print Packing Slip","dashboard_state":"Awaiting accept shipment","attention_bucket":"Stale >7 days","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-11T10:00:00","days_since_update":11,"days_since_creation":20,"attention_sort":11},
+  {"assigned_location_code":"TLITWH0048","location_label":"CSG Location","order_number":"ORD-2003","external_order_id":"FE-2003","oms_shipment_number":"SHP-2003","shipment_order_number":"SORD-2003","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Print Packing Slip","dashboard_state":"Awaiting accept shipment","attention_bucket":"Stale >7 days","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-08T09:00:00","days_since_update":14,"days_since_creation":25,"attention_sort":14},
+  {"assigned_location_code":"TLITWH0048","location_label":"CSG Location","order_number":"ORD-2004","external_order_id":"FE-2004","oms_shipment_number":"SHP-2004","shipment_order_number":"SORD-2004","brand":"Alfa Romeo","shipment_status":"OPEN","fulfillment_status":"Wait for Payment Confirmation","dashboard_state":"Payment wait","attention_bucket":"Operational queue","geodis_status_label":"PICKING","geodis_status_code":"3","geodis_reference":"GEO-2004","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T05:00:00","days_since_update":0,"days_since_creation":3,"attention_sort":0},
+  {"assigned_location_code":"TLITWH0048","location_label":"CSG Location","order_number":"ORD-2005","external_order_id":"FE-2005","oms_shipment_number":"SHP-2005","shipment_order_number":"SORD-2005","brand":"Ferrari","shipment_status":"OPEN","fulfillment_status":"Validate Items In Stock","dashboard_state":"Stock validation","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-20T15:00:00","days_since_update":2,"days_since_creation":7,"attention_sort":2},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3001","external_order_id":"FE-3001","oms_shipment_number":"SHP-3001","shipment_order_number":"SORD-3001","brand":"Ferrari","shipment_status":"READY","fulfillment_status":"Wait for Payment Confirmation","dashboard_state":"Payment wait","attention_bucket":"Operational queue","geodis_status_label":"PICKING","geodis_status_code":"3","geodis_reference":"GEO-3001","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T07:30:00","days_since_update":0,"days_since_creation":2,"attention_sort":0},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3002","external_order_id":"FE-3002","oms_shipment_number":"SHP-3002","shipment_order_number":"SORD-3002","brand":"Maserati","shipment_status":"READY","fulfillment_status":"Wait for Payment Confirmation","dashboard_state":"Payment wait","attention_bucket":"Operational queue","geodis_status_label":"PACKING","geodis_status_code":"5","geodis_reference":"GEO-3002","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T06:00:00","days_since_update":0,"days_since_creation":1,"attention_sort":0},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3003","external_order_id":"FE-3003","oms_shipment_number":"SHP-3003","shipment_order_number":"SORD-3003","brand":"Ferrari","shipment_status":"READY","fulfillment_status":"Prepare for Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"PACKED (MA NON BORDERIZZATO)","geodis_status_code":"7","geodis_reference":"GEO-3003","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T08:00:00","days_since_update":0,"days_since_creation":1,"attention_sort":0},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3004","external_order_id":"FE-3004","oms_shipment_number":"SHP-3004","shipment_order_number":"SORD-3004","brand":"Ferrari","shipment_status":"READY","fulfillment_status":"Prepare for Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"PACKED (MA NON BORDERIZZATO)","geodis_status_code":"7","geodis_reference":"GEO-3004","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-21T18:00:00","days_since_update":1,"days_since_creation":2,"attention_sort":1},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3005","external_order_id":"FE-3005","oms_shipment_number":"SHP-3005","shipment_order_number":"SORD-3005","brand":"Alfa Romeo","shipment_status":"READY","fulfillment_status":"Fulfilled","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"SHIPPED","geodis_status_code":"8","geodis_reference":"GEO-3005","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T05:00:00","days_since_update":0,"days_since_creation":1,"attention_sort":0},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3006","external_order_id":"FE-3006","oms_shipment_number":"SHP-3006","shipment_order_number":"SORD-3006","brand":"Ferrari","shipment_status":"READY","fulfillment_status":"Fulfilled","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"SHIPPED","geodis_status_code":"8","geodis_reference":"GEO-3006","geodis_source_file":"uscite_20260622.csv","geodis_found":true,"update_datetime_rome":"2026-06-22T04:00:00","days_since_update":0,"days_since_creation":1,"attention_sort":0},
+  {"assigned_location_code":"TLITGX0048","location_label":"GXO 0048","order_number":"ORD-3007","external_order_id":"FE-3007","oms_shipment_number":"SHP-3007","shipment_order_number":"SORD-3007","brand":"Maserati","shipment_status":"READY","fulfillment_status":"Accept Shipment","dashboard_state":"Awaiting accept shipment","attention_bucket":"Operational queue","geodis_status_label":"Non presente in file Geodis","geodis_status_code":null,"geodis_reference":null,"geodis_source_file":null,"geodis_found":false,"update_datetime_rome":"2026-06-21T10:00:00","days_since_update":1,"days_since_creation":4,"attention_sort":1}
+]};
 </script>
   <script>
     const payload = window.OMS_DASHBOARD_DATA || { rows: [], generatedAtUtc: null, source: "n/a" };
@@ -1045,6 +1206,15 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       sortDir: "asc",
       selectedRow: null
     };
+
+    const OMS_STATUS_DEFS = [
+      { status: "Accept Shipment",               color: "#2563eb" },
+      { status: "Validate Items In Stock",        color: "#087f8c" },
+      { status: "Print Packing Slip",             color: "#6d41d9" },
+      { status: "Wait for Payment Confirmation",  color: "#b25b00" },
+      { status: "Prepare for Shipment",           color: "#147a43" },
+      { status: "Fulfilled",                      color: "#059669" },
+    ];
 
     const colors = {
       "Accept Shipment": "#2563eb",
@@ -1070,6 +1240,7 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       "PACKING": "#6d41d9",
       "PACKED (MA NON BORDERIZZATO)": "#147a43",
       "SHIPPED": "#101214",
+      "Fulfilled": "#059669",
       "Non presente in file Geodis": "#9aa0a8"
     };
 
@@ -1255,7 +1426,35 @@ window.OMS_DASHBOARD_DATA = {"generatedAtUtc":null,"source":"tlg-business-intell
       renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows);
       renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows);
       renderSubTable(el.allTableBody, el.allTableCount, el.allTabCount, allRows);
+      renderOmsStatusSummary("tempOmsSummary", tempRows);
+      renderOmsStatusSummary("whOmsSummary", whRows);
+      renderOmsStatusSummary("gxoOmsSummary", gxoRows);
+      renderOmsStatusSummary("allOmsSummary", allRows);
       renderInventory();
+    }
+
+    function renderOmsStatusSummary(containerId, rows) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const counts = {};
+      rows.forEach((row) => {
+        const s = value(row, "fulfillment_status");
+        if (s && s !== "n/a") counts[s] = (counts[s] || 0) + 1;
+      });
+
+      const cards = OMS_STATUS_DEFS.map((def) => {
+        const count = counts[def.status] || 0;
+        const bg = hexToRgba(def.color, 0.07);
+        return `
+          <div class="oms-stat-card" style="--oms-c:${def.color}; background:${bg}">
+            <div class="oms-stat-value">${compactNumber(count)}</div>
+            <div class="oms-stat-label">${escapeHtml(def.status)}</div>
+          </div>
+        `;
+      }).join("");
+
+      container.innerHTML = `<div class="oms-stat-grid">${cards}</div>`;
     }
 
     function renderSubTable(tbody, countBadge, tabCount, rows) {
