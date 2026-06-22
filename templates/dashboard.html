@@ -855,6 +855,18 @@
       flex-direction: column;
       gap: 4px;
       box-shadow: 0 1px 2px rgba(16,18,20,.04);
+      cursor: pointer;
+      text-align: left;
+      transition: box-shadow 140ms ease, border-left-width 140ms ease;
+    }
+
+    .oms-stat-card:hover {
+      filter: brightness(0.97);
+    }
+
+    .oms-stat-card.active {
+      border-left-width: 4px;
+      box-shadow: 0 0 0 2px var(--oms-c);
     }
 
     .oms-stat-value {
@@ -1019,7 +1031,6 @@
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
-                  <th>Dashboard State</th>
                   <th>Geodis Status</th>
                   <th>Last Update</th>
                   <th>Days since update</th>
@@ -1052,7 +1063,6 @@
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
-                  <th>Dashboard State</th>
                   <th>Geodis Status</th>
                   <th>Last Update</th>
                   <th>Days since update</th>
@@ -1085,7 +1095,6 @@
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
-                  <th>Dashboard State</th>
                   <th>Geodis Status</th>
                   <th>Last Update</th>
                   <th>Days since update</th>
@@ -1118,7 +1127,6 @@
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
-                  <th>Dashboard State</th>
                   <th>Geodis Status</th>
                   <th>Last Update</th>
                   <th>Days since update</th>
@@ -1183,7 +1191,8 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       geodis: "ALL",
       sortKey: "attention_sort",
       sortDir: "asc",
-      selectedRow: null
+      selectedRow: null,
+      omsFilter: {}
     };
 
     const OMS_STATUS_DEFS = [
@@ -1401,18 +1410,18 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       const tempRows = allRows.filter((row) => row.assigned_location_code === "TLTEMP0048");
       const whRows = allRows.filter((row) => row.assigned_location_code === "TLITWH0048");
       const gxoRows = allRows.filter((row) => row.assigned_location_code === "TLITGX0048");
-      renderSubTable(el.tempTableBody, el.tempTableCount, el.tempTabCount, tempRows);
-      renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows);
-      renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows);
-      renderSubTable(el.allTableBody, el.allTableCount, el.allTabCount, allRows);
-      renderOmsStatusSummary("tempOmsSummary", tempRows);
-      renderOmsStatusSummary("whOmsSummary", whRows);
-      renderOmsStatusSummary("gxoOmsSummary", gxoRows);
-      renderOmsStatusSummary("allOmsSummary", allRows);
+      renderOmsStatusSummary("tempOmsSummary", tempRows, "TLTEMP0048");
+      renderOmsStatusSummary("whOmsSummary", whRows, "TLITWH0048");
+      renderOmsStatusSummary("gxoOmsSummary", gxoRows, "TLITGX0048");
+      renderOmsStatusSummary("allOmsSummary", allRows, "ALL");
+      renderSubTable(el.tempTableBody, el.tempTableCount, el.tempTabCount, tempRows, "TLTEMP0048");
+      renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows, "TLITWH0048");
+      renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows, "TLITGX0048");
+      renderSubTable(el.allTableBody, el.allTableCount, el.allTabCount, allRows, "ALL");
       renderInventory();
     }
 
-    function renderOmsStatusSummary(containerId, rows) {
+    function renderOmsStatusSummary(containerId, rows, locationCode) {
       const container = document.getElementById(containerId);
       if (!container) return;
 
@@ -1422,26 +1431,48 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
         if (s && s !== "n/a") counts[s] = (counts[s] || 0) + 1;
       });
 
+      const activeStatus = state.omsFilter[locationCode] || null;
+
       const cards = OMS_STATUS_DEFS.map((def) => {
         const count = counts[def.status] || 0;
         const bg = hexToRgba(def.color, 0.07);
+        const isActive = activeStatus === def.status;
         return `
-          <div class="oms-stat-card" style="--oms-c:${def.color}; background:${bg}">
+          <button class="oms-stat-card${isActive ? " active" : ""}"
+                  style="--oms-c:${def.color}; background:${bg}"
+                  data-location="${escapeHtml(locationCode)}"
+                  data-status="${escapeHtml(def.status)}"
+                  type="button">
             <div class="oms-stat-value">${compactNumber(count)}</div>
             <div class="oms-stat-label">${escapeHtml(def.status)}</div>
-          </div>
+          </button>
         `;
       }).join("");
 
       container.innerHTML = `<div class="oms-stat-grid">${cards}</div>`;
+
+      container.querySelectorAll(".oms-stat-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const loc = card.dataset.location;
+          const status = card.dataset.status;
+          state.omsFilter[loc] = state.omsFilter[loc] === status ? null : status;
+          render();
+        });
+      });
     }
 
-    function renderSubTable(tbody, countBadge, tabCount, rows) {
-      const sorted = [...rows].sort((a, b) => (Number(b.days_since_update) || 0) - (Number(a.days_since_update) || 0));
-      if (countBadge) countBadge.textContent = `${compactNumber(sorted.length)} righe`;
-      if (tabCount) tabCount.textContent = sorted.length;
+    function renderSubTable(tbody, countBadge, tabCount, rows, locationCode) {
+      const activeOmsStatus = state.omsFilter[locationCode] || null;
+      const filtered = activeOmsStatus
+        ? rows.filter((row) => value(row, "fulfillment_status") === activeOmsStatus)
+        : rows;
+      const sorted = [...filtered].sort((a, b) => (Number(b.days_since_update) || 0) - (Number(a.days_since_update) || 0));
+      if (tabCount) tabCount.textContent = rows.length;
+      if (countBadge) countBadge.textContent = activeOmsStatus
+        ? `${compactNumber(sorted.length)} di ${compactNumber(rows.length)} righe`
+        : `${compactNumber(sorted.length)} righe`;
       if (!sorted.length) {
-        tbody.innerHTML = `<tr><td class="empty" colspan="8">Nessuna shipment per questa location.</td></tr>`;
+        tbody.innerHTML = `<tr><td class="empty" colspan="7">Nessuna shipment per questa location.</td></tr>`;
         return;
       }
       tbody.innerHTML = sorted.map((row, index) => {
@@ -1452,7 +1483,6 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
             <td class="mono">${escapeHtml(value(row, "oms_shipment_number"))}</td>
             <td>${escapeHtml(value(row, "brand"))}</td>
             <td>${tag(value(row, "fulfillment_status"))}</td>
-            <td>${tag(value(row, "dashboard_state"))}</td>
             <td>${tag(value(row, "geodis_status_label"))}</td>
             <td>${escapeHtml(dateLabel(row.update_datetime_rome))}</td>
             <td>${compactNumber(row.days_since_update || 0)}</td>
@@ -1603,7 +1633,6 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
           <td class="mono">${escapeHtml(value(row, "oms_shipment_number"))}</td>
           <td class="mono">${escapeHtml(value(row, "shipment_order_number"))}</td>
           <td>${escapeHtml(value(row, "brand"))}</td>
-          <td>${tag(value(row, "dashboard_state"))}</td>
           <td>${tag(value(row, "geodis_status_label"))}</td>
           <td>${compactNumber(row.days_since_update || 0)}</td>
           <td>${escapeHtml(dateLabel(row.update_datetime_rome))}</td>
@@ -1804,7 +1833,6 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       "brand",
       "shipment_status",
       "fulfillment_status",
-      "dashboard_state",
       "attention_bucket",
       "geodis_status_code",
       "geodis_status_label",
@@ -1838,9 +1866,13 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
     }
 
     function exportLocationCsv(locationCode, name) {
-      const rows = locationCode === "ALL"
+      const base = locationCode === "ALL"
         ? allRows
         : allRows.filter((row) => row.assigned_location_code === locationCode);
+      const activeOmsStatus = state.omsFilter[locationCode] || null;
+      const rows = activeOmsStatus
+        ? base.filter((row) => value(row, "fulfillment_status") === activeOmsStatus)
+        : base;
       const sorted = [...rows].sort((a, b) => (Number(b.days_since_update) || 0) - (Number(a.days_since_update) || 0));
       downloadCsv(sorted, `oms-location-0048-${name || String(locationCode).toLowerCase()}.csv`);
     }
