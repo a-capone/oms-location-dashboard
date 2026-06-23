@@ -1028,6 +1028,7 @@
               <thead>
                 <tr>
                   <th>Order Number</th>
+                  <th>Logistic Order N.</th>
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
@@ -1060,6 +1061,7 @@
               <thead>
                 <tr>
                   <th>Order Number</th>
+                  <th>Logistic Order N.</th>
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
@@ -1092,6 +1094,7 @@
               <thead>
                 <tr>
                   <th>Order Number</th>
+                  <th>Logistic Order N.</th>
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
@@ -1124,6 +1127,7 @@
               <thead>
                 <tr>
                   <th>Order Number</th>
+                  <th>Logistic Order N.</th>
                   <th>OMS Shipment</th>
                   <th>Brand</th>
                   <th>OMS Status</th>
@@ -1472,7 +1476,7 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
         ? `${compactNumber(sorted.length)} di ${compactNumber(rows.length)} righe`
         : `${compactNumber(sorted.length)} righe`;
       if (!sorted.length) {
-        tbody.innerHTML = `<tr><td class="empty" colspan="7">Nessuna shipment per questa location.</td></tr>`;
+        tbody.innerHTML = `<tr><td class="empty" colspan="8">Nessuna shipment per questa location.</td></tr>`;
         return;
       }
       tbody.innerHTML = sorted.map((row, index) => {
@@ -1480,6 +1484,7 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
         return `
           <tr data-row-index="${index}">
             <td class="mono">${escapeHtml(String(orderNum ?? "n/a"))}</td>
+            <td class="mono">${escapeHtml((value(row, "brand") !== "n/a" && value(row, "oms_shipment_number") !== "n/a") ? value(row, "brand") + value(row, "oms_shipment_number") : "n/a")}</td>
             <td class="mono">${escapeHtml(value(row, "oms_shipment_number"))}</td>
             <td>${escapeHtml(value(row, "brand"))}</td>
             <td>${tag(value(row, "fulfillment_status"))}</td>
