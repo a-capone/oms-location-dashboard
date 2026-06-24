@@ -311,7 +311,7 @@ def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LO
         ]
     )
     rows: list[dict[str, Any]] = []
-    for row in client.query(query).result():
+    for row in client.query(query, job_config=job_config).result():
         d = dict(row.items())
         brand_val: str = d.get("brand") or ""
         logistic: str = d.get("logistic_order_number") or ""
