@@ -286,13 +286,13 @@ def enrich_with_geodis(rows: list[dict[str, Any]], geodis_index: dict[str, dict[
     return rows, matched
 
 
-def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+def fetch_fulfilled_rows(lookback_days: int = FULFILLED_LOOKBACK_DAYS) -> list[dict[str, Any]]:
     client = bigquery.Client(project="tlg-wlfs-prd")
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=lookback_days)
     query = f"""
     SELECT
-      JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') AS assigned_location_code,
+      'TLITGX0048' AS assigned_location_code,
       brand,
       shipmentOrderNumber AS shipment_order_number,
       JSON_VALUE(requestPayload, '$.data.logisticOrderNumber') AS logistic_order_number,
@@ -300,14 +300,13 @@ def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LO
       lastModifiedDate
     FROM `{SHIPMENT_STATUS_TABLE}`
     WHERE eventType = 'SHIPPED'
+      AND warehouse = 'GXO'
       AND TIMESTAMP(eventTimeStamp) >= @cutoff
-      AND JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') IN UNNEST(@locations)
     QUALIFY ROW_NUMBER() OVER (PARTITION BY shipmentOrderNumber ORDER BY eventTimeStamp DESC) = 1
     """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("cutoff", "TIMESTAMP", cutoff),
-            bigquery.ArrayQueryParameter("locations", "STRING", locations),
         ]
     )
     rows: list[dict[str, Any]] = []
@@ -542,7 +541,7 @@ def main() -> None:
 
     locations = [loc.strip() for loc in os.environ.get("INVAPP_LOCATIONS", DEFAULT_INVENTORY_LOCATIONS).split(",")]
     rows = fetch_bigquery_rows()
-    fulfilled_rows = fetch_fulfilled_rows(locations)
+    fulfilled_rows = fetch_fulfilled_rows()
     combined_rows = rows + fulfilled_rows
     prior_inventory_history = previous_inventory_history(output)
 
