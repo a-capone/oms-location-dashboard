@@ -23,13 +23,19 @@ warnings.filterwarnings("ignore", message="Workbook contains no default style.*"
 PROJECT = "tlg-business-intelligence-prd"
 VIEW_ID = "tlg-business-intelligence-prd.til.v_oms_active_location_dashboard"
 
-DEFAULT_OUTPUT = Path("tmp/index.html")
 DEFAULT_TEMPLATE = Path("templates/dashboard.html")
 DEFAULT_REMOTE_DIRS = ["/report/Outbound/Uscite", "/report/Outbound"]
-DEFAULT_INVENTORY_LOCATIONS = "TLTEMP0048,TLITWH0048,TLITGX0048"
 DEFAULT_TOKEN_URL = "https://integrations.thelevelgroup.com/identity/oauth2/token"
 DEFAULT_INVENTORY_URL = "https://integrations.thelevelgroup.com/invapp-dab-prod/v2/InventoryWmsMonitoring"
 INVENTORY_HISTORY_LIMIT = 168
+
+BRAND_CONFIGS: dict[str, dict[str, Any]] = {
+    "FE": {"name": "Ferrari",         "brand_code": 48, "temp": "TLTEMP0048", "gxo": "TLITGX0048", "wh": "TLITWH0048"},
+    "DG": {"name": "Dolce&Gabbana",   "brand_code": 15, "temp": "TLTEMP0015", "gxo": "TLITGX0015", "wh": "TLITWH0015"},
+    "DJ": {"name": "La DoubleJ",      "brand_code": 11, "temp": "TLTEMP0011", "gxo": "TLITGX0011", "wh": "TLITWH0011"},
+    "BB": {"name": "Brooks Brothers", "brand_code": 42, "temp": "TLTEMP0042", "gxo": "TLITGX0042", "wh": "BBITST0001"},
+    "WL": {"name": "FrankBros",       "brand_code": 12, "temp": "TLTEMP0012", "gxo": "TLITGX0012", "wh": "TLITWH0012"},
+}
 
 GEODIS_STATUS = {
     "1": "INTEGRATO",
@@ -88,7 +94,7 @@ def filename_sort_key(name: str) -> tuple[int, ...]:
     return tuple(int(part or 0) for part in match.groups())
 
 
-def fetch_bigquery_rows() -> list[dict[str, Any]]:
+def fetch_bigquery_rows(locations: list[str]) -> list[dict[str, Any]]:
     client = bigquery.Client(project=PROJECT)
     query = f"""
     SELECT
@@ -120,10 +126,14 @@ def fetch_bigquery_rows() -> list[dict[str, Any]]:
       is_ready
     FROM `{VIEW_ID}`
     WHERE shipment_status != 'CANCELED'
+      AND assigned_location_code IN UNNEST(@locations)
     ORDER BY attention_sort, days_since_update DESC, assigned_location_code, external_order_id, oms_shipment_number
     """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ArrayQueryParameter("locations", "STRING", locations)]
+    )
     rows: list[dict[str, Any]] = []
-    for row in client.query(query).result():
+    for row in client.query(query, job_config=job_config).result():
         out: dict[str, Any] = {}
         for key, value in dict(row.items()).items():
             if hasattr(value, "isoformat"):
@@ -396,14 +406,18 @@ def previous_inventory_history(output: Path) -> list[dict[str, Any]]:
     return []
 
 
-def append_inventory_history(history: list[dict[str, Any]], inventory: dict[str, Any]) -> list[dict[str, Any]]:
+def append_inventory_history(history: list[dict[str, Any]], inventory: dict[str, Any], brand_cfg: dict[str, Any]) -> list[dict[str, Any]]:
     quantities = inventory_quantity_map(inventory)
-    point = {
+    temp_loc = brand_cfg["temp"]
+    gxo_loc = brand_cfg["gxo"]
+    wh_loc = brand_cfg["wh"]
+    point: dict[str, Any] = {
         "fetchedAtUtc": inventory.get("fetchedAtUtc"),
-        "TLTEMP0048": quantities.get("TLTEMP0048"),
-        "TLITWH0048": quantities.get("TLITWH0048"),
-        "TLITGX0048": quantities.get("TLITGX0048"),
+        temp_loc: quantities.get(temp_loc),
+        gxo_loc: quantities.get(gxo_loc),
     }
+    if wh_loc:
+        point[wh_loc] = quantities.get(wh_loc)
     if not point["fetchedAtUtc"]:
         return history[-INVENTORY_HISTORY_LIMIT:]
 
@@ -430,6 +444,7 @@ def build_payload(
     geodis_matches: int,
     inventory: dict[str, Any],
     inventory_history: list[dict[str, Any]],
+    brand_cfg: dict[str, Any],
 ) -> dict[str, Any]:
     inventory = dict(inventory)
     inventory["history"] = inventory_history
@@ -438,6 +453,7 @@ def build_payload(
         "source": VIEW_ID,
         "rowCount": len(rows),
         "lastHourlyRefreshAtUtc": datetime.now(timezone.utc).isoformat(),
+        "brandConfig": brand_cfg,
         "geodis": {
             "fileName": geodis_file.filename,
             "remoteDir": geodis_file.remote_dir,
@@ -455,17 +471,23 @@ def build_payload(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build the mono-file OMS dashboard with BigQuery and Geodis SFTP Excel data.")
-    parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help="Path to HTML output, default tmp/index.html")
+    parser.add_argument("--brand", required=True, choices=list(BRAND_CONFIGS.keys()), help="Brand to build the dashboard for (e.g. FE, DG, DJ, BB, WL)")
+    parser.add_argument("--output", default=None, help="Path to HTML output, default tmp/{brand}/index.html")
     parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="Path to HTML template, default templates/dashboard.html")
     parser.add_argument("--cache-dir", default="runtime/geodis", help="Local cache for downloaded Geodis Excel files")
     args = parser.parse_args()
 
-    output = Path(args.output)
+    brand_cfg = BRAND_CONFIGS[args.brand]
+    locations = [brand_cfg["temp"], brand_cfg["gxo"]]
+    if brand_cfg["wh"]:
+        locations.append(brand_cfg["wh"])
+
+    output = Path(args.output) if args.output else Path(f"tmp/{args.brand.lower()}/index.html")
     template = Path(args.template)
     if not template.exists():
         raise RuntimeError(f"Template not found: {template}")
 
-    rows = fetch_bigquery_rows()
+    rows = fetch_bigquery_rows(locations)
     prior_inventory_history = previous_inventory_history(output)
 
     sftp = connect_sftp()
@@ -478,11 +500,12 @@ def main() -> None:
     geodis_index = parse_geodis_excel(local_file, latest)
     enriched, matches = enrich_with_geodis(rows, geodis_index)
     inventory = fetch_inventory_rows()
-    inventory_history = append_inventory_history(prior_inventory_history, inventory)
-    payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history)
+    inventory_history = append_inventory_history(prior_inventory_history, inventory, brand_cfg)
+    payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history, brand_cfg)
     render_template(template, output, payload)
 
     print(json.dumps({
+        "brand": args.brand,
         "output": str(output),
         "rows": len(enriched),
         "geodis_file": latest.filename,

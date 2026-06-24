@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ferrari | Shipment &amp; Inventory Monitoring</title>
+  <title id="pageTitle">Shipment &amp; Inventory Monitoring</title>
   <style>
     :root {
       color-scheme: light;
@@ -946,8 +946,8 @@
     <main class="shell">
       <header class="topbar">
         <div>
-          <h1>Ferrari | Shipment &amp; Inventory Monitoring</h1>
-          <div class="subtitle">Ferrari - Monitoraggio spedizioni attive: FE Temporary, CSG Location e GXO 0048.</div>
+          <h1 id="dashboardTitle">Shipment &amp; Inventory Monitoring</h1>
+          <div class="subtitle" id="dashboardSubtitle">Monitoraggio spedizioni attive.</div>
         </div>
         <div class="meta">
           <span class="pill"><span class="dot" style="color: var(--blue)"></span><span id="hourlyRefreshTime">Aggiornamento orario</span></span>
@@ -1016,11 +1016,11 @@
           <div class="panel-head">
             <div>
               <h2 class="panel-title">FE Temporary - Shipments</h2>
-              <p class="panel-subtitle">FE Temporary Location (TLTEMP0048).</p>
+              <p class="panel-subtitle" id="tempPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
               <span class="pill mono" id="tempTableCount"></span>
-              <button class="button" type="button" data-export-location="TLTEMP0048" data-export-name="fe-temporary">Scarica CSV</button>
+              <button class="button" type="button" id="tempExportBtn" data-export-name="temp">Scarica CSV</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -1049,11 +1049,11 @@
           <div class="panel-head">
             <div>
               <h2 class="panel-title">CSG Location - Shipments</h2>
-              <p class="panel-subtitle">CSG Location (TLITWH0048) - spedizioni aged non aggiornate sul WMS.</p>
+              <p class="panel-subtitle" id="whPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
               <span class="pill mono" id="whTableCount"></span>
-              <button class="button" type="button" data-export-location="TLITWH0048" data-export-name="csg-location">Scarica CSV</button>
+              <button class="button" type="button" id="whExportBtn" data-export-name="wh">Scarica CSV</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -1082,11 +1082,11 @@
           <div class="panel-head">
             <div>
               <h2 class="panel-title">GXO 0048 - Shipments</h2>
-              <p class="panel-subtitle">GXO target location (TLITGX0048) - spedizioni assegnate alla location definitiva.</p>
+              <p class="panel-subtitle" id="gxoPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
               <span class="pill mono" id="gxoTableCount"></span>
-              <button class="button" type="button" data-export-location="TLITGX0048" data-export-name="gxo-0048">Scarica CSV</button>
+              <button class="button" type="button" id="gxoExportBtn" data-export-name="gxo">Scarica CSV</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -1184,6 +1184,7 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
     const payload = window.OMS_DASHBOARD_DATA || { rows: [], generatedAtUtc: null, source: "n/a" };
     const allRows = payload.rows || [];
     const inventoryRows = payload.inventory?.rows || [];
+    const brandCfg = payload.brandConfig || { name: "Ferrari", brand_code: 48, temp: "TLTEMP0048", gxo: "TLITGX0048", wh: "TLITWH0048" };
 
     const state = {
       search: "",
@@ -1240,6 +1241,15 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       hourlyRefreshTime: document.getElementById("hourlyRefreshTime"),
       snapshotTime: document.getElementById("snapshotTime"),
       sourceName: document.getElementById("sourceName"),
+      dashboardTitle: document.getElementById("dashboardTitle"),
+      dashboardSubtitle: document.getElementById("dashboardSubtitle"),
+      pageTitle: document.getElementById("pageTitle"),
+      tempPanelSubtitle: document.getElementById("tempPanelSubtitle"),
+      whPanelSubtitle: document.getElementById("whPanelSubtitle"),
+      gxoPanelSubtitle: document.getElementById("gxoPanelSubtitle"),
+      tempExportBtn: document.getElementById("tempExportBtn"),
+      whExportBtn: document.getElementById("whExportBtn"),
+      gxoExportBtn: document.getElementById("gxoExportBtn"),
       tempTableBody: document.getElementById("tempTableBody"),
       tempTableCount: document.getElementById("tempTableCount"),
       tempTabCount: document.getElementById("tempTabCount"),
@@ -1262,6 +1272,22 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       drawerBody: document.getElementById("drawerBody"),
       toast: document.getElementById("toast")
     };
+
+    // Init brand-specific labels
+    (function initBrandLabels() {
+      const title = `${brandCfg.name} | Shipment & Inventory Monitoring`;
+      document.title = title;
+      if (el.pageTitle) el.pageTitle.textContent = title;
+      if (el.dashboardTitle) el.dashboardTitle.textContent = title;
+      const locs = [brandCfg.temp, brandCfg.wh, brandCfg.gxo].filter(Boolean).join(", ");
+      if (el.dashboardSubtitle) el.dashboardSubtitle.textContent = `${brandCfg.name} - Monitoraggio spedizioni attive: ${locs}.`;
+      if (el.tempPanelSubtitle) el.tempPanelSubtitle.textContent = `${brandCfg.temp} - Temporary location.`;
+      if (el.whPanelSubtitle) el.whPanelSubtitle.textContent = `${brandCfg.wh || "N/A"} - Warehouse location, spedizioni aged non aggiornate sul WMS.`;
+      if (el.gxoPanelSubtitle) el.gxoPanelSubtitle.textContent = `${brandCfg.gxo} - GXO target location, spedizioni assegnate alla location definitiva.`;
+      if (el.tempExportBtn) el.tempExportBtn.dataset.exportLocation = brandCfg.temp;
+      if (el.whExportBtn) el.whExportBtn.dataset.exportLocation = brandCfg.wh || "";
+      if (el.gxoExportBtn) el.gxoExportBtn.dataset.exportLocation = brandCfg.gxo;
+    })();
 
     function value(row, key) {
       const raw = row[key];
@@ -1411,16 +1437,16 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
     }
 
     function render() {
-      const tempRows = allRows.filter((row) => row.assigned_location_code === "TLTEMP0048");
-      const whRows = allRows.filter((row) => row.assigned_location_code === "TLITWH0048");
-      const gxoRows = allRows.filter((row) => row.assigned_location_code === "TLITGX0048");
-      renderOmsStatusSummary("tempOmsSummary", tempRows, "TLTEMP0048");
-      renderOmsStatusSummary("whOmsSummary", whRows, "TLITWH0048");
-      renderOmsStatusSummary("gxoOmsSummary", gxoRows, "TLITGX0048");
+      const tempRows = allRows.filter((row) => row.assigned_location_code === brandCfg.temp);
+      const whRows = allRows.filter((row) => row.assigned_location_code === brandCfg.wh);
+      const gxoRows = allRows.filter((row) => row.assigned_location_code === brandCfg.gxo);
+      renderOmsStatusSummary("tempOmsSummary", tempRows, brandCfg.temp);
+      renderOmsStatusSummary("whOmsSummary", whRows, brandCfg.wh);
+      renderOmsStatusSummary("gxoOmsSummary", gxoRows, brandCfg.gxo);
       renderOmsStatusSummary("allOmsSummary", allRows, "ALL");
-      renderSubTable(el.tempTableBody, el.tempTableCount, el.tempTabCount, tempRows, "TLTEMP0048");
-      renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows, "TLITWH0048");
-      renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows, "TLITGX0048");
+      renderSubTable(el.tempTableBody, el.tempTableCount, el.tempTabCount, tempRows, brandCfg.temp);
+      renderSubTable(el.whTableBody, el.whTableCount, el.whTabCount, whRows, brandCfg.wh);
+      renderSubTable(el.gxoTableBody, el.gxoTableCount, el.gxoTabCount, gxoRows, brandCfg.gxo);
       renderSubTable(el.allTableBody, el.allTableCount, el.allTabCount, allRows, "ALL");
       renderInventory();
     }
@@ -1676,9 +1702,9 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       `).join("");
 
       const chipValues = [
-        ["TLITGX0048", "location", "TLITGX0048"],
-        ["TLTEMP0048", "location", "TLTEMP0048"],
-        ["TLITWH0048", "location", "TLITWH0048"],
+        [brandCfg.gxo, "location", brandCfg.gxo],
+        [brandCfg.temp, "location", brandCfg.temp],
+        ...(brandCfg.wh ? [[brandCfg.wh, "location", brandCfg.wh]] : []),
         ["READY", "status", "READY"],
         ["Stale >7 days", "attention", "Stale >7 days"],
         ["Packed Geodis", "geodis", "PACKED (MA NON BORDERIZZATO)"],
@@ -1718,8 +1744,8 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
 
     function renderInventory() {
       const byLocation = Object.fromEntries(inventoryRows.map((row) => [row.locationName, Number(row.quantity) || 0]));
-      const gxoQuantity = byLocation.TLITGX0048 || 0;
-      const tempQuantity = byLocation.TLTEMP0048 || 0;
+      const gxoQuantity = byLocation[brandCfg.gxo] || 0;
+      const tempQuantity = byLocation[brandCfg.temp] || 0;
       const movementBase = tempQuantity || null;
       const movementPct = movementBase ? (gxoQuantity / movementBase) * 100 : null;
       const history = payload.inventory?.history || [];
@@ -1737,12 +1763,12 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
         <article class="kpi ready" style="">
           <div class="kpi-label">Migration Progress</div>
           <div class="kpi-value" style="font-size:2.2rem">${movementPct === null ? "n/a" : movementPct.toFixed(1) + "%"}</div>
-          <div class="kpi-note">TLITGX0048 / TLTEMP0048 (baseline congelato)</div>
+          <div class="kpi-note">${escapeHtml(brandCfg.gxo)} / ${escapeHtml(brandCfg.temp)} (baseline congelato)</div>
           ${progressBar}
         </article>
       ` + [
-        { label: "GXO ingresso", value: gxoQuantity, note: "TLITGX0048", cls: "ready" },
-        { label: "TEMP baseline", value: tempQuantity, note: "TLTEMP0048, congelato", cls: "shipments" },
+        { label: "GXO ingresso", value: gxoQuantity, note: brandCfg.gxo, cls: "ready" },
+        { label: "TEMP baseline", value: tempQuantity, note: `${brandCfg.temp}, congelato`, cls: "shipments" },
         { label: "Inventory update", value: latestUpdate ? dateLabel(latestUpdate) : "n/a", note: "ultimo aggiornamento WMS", cls: "" }
       ].map((kpi) => `
         <article class="kpi ${kpi.cls}">
@@ -1753,12 +1779,12 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       `).join("");
 
       el.inventorySubtitle.textContent = payload.inventory?.fetchedAtUtc
-        ? `Letto alle ${dateLabel(payload.inventory.fetchedAtUtc)}. Il valore da monitorare e TLITGX0048.`
+        ? `Letto alle ${dateLabel(payload.inventory.fetchedAtUtc)}. Il valore da monitorare e ${brandCfg.gxo}.`
         : "Dato inventario non disponibile.";
 
       const flowRows = [
-        { label: "GXO ingresso", location: "TLITGX0048", quantity: gxoQuantity, color: "#147a43" },
-        { label: "TEMP congelato", location: "TLTEMP0048", quantity: tempQuantity, color: "#6d41d9" },
+        { label: "GXO ingresso", location: brandCfg.gxo, quantity: gxoQuantity, color: "#147a43" },
+        { label: "TEMP congelato", location: brandCfg.temp, quantity: tempQuantity, color: "#6d41d9" },
       ];
       el.inventoryChart.innerHTML = flowRows.map((row) => {
         const qty = Number(row.quantity) || 0;
