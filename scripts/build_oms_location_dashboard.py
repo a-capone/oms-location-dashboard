@@ -475,6 +475,8 @@ def main() -> None:
     parser.add_argument("--output", default=None, help="Path to HTML output, default tmp/{brand}/index.html")
     parser.add_argument("--template", default=str(DEFAULT_TEMPLATE), help="Path to HTML template, default templates/dashboard.html")
     parser.add_argument("--cache-dir", default="runtime/geodis", help="Local cache for downloaded Geodis Excel files")
+    parser.add_argument("--skip-geodis", action="store_true", help="Skip Geodis SFTP fetch (for local testing)")
+    parser.add_argument("--skip-invapp", action="store_true", help="Skip InvApp inventory fetch (for local testing)")
     args = parser.parse_args()
 
     brand_cfg = BRAND_CONFIGS[args.brand]
@@ -490,16 +492,23 @@ def main() -> None:
     rows = fetch_bigquery_rows(locations)
     prior_inventory_history = previous_inventory_history(output)
 
-    sftp = connect_sftp()
-    try:
-        latest = find_latest_geodis_file(sftp)
-        local_file = download_geodis_file(sftp, latest, Path(args.cache_dir))
-    finally:
-        close_sftp(sftp)
-
-    geodis_index = parse_geodis_excel(local_file, latest)
-    enriched, matches = enrich_with_geodis(rows, geodis_index)
-    inventory = fetch_inventory_rows()
+    if args.skip_geodis:
+        geodis_index: dict[str, dict[str, Any]] = {}
+        latest = GeodisFile(remote_dir="", filename="skipped", size=0, mtime=0)
+        enriched, matches = enrich_with_geodis(rows, geodis_index)
+    else:
+        sftp = connect_sftp()
+        try:
+            latest = find_latest_geodis_file(sftp)
+            local_file = download_geodis_file(sftp, latest, Path(args.cache_dir))
+        finally:
+            close_sftp(sftp)
+        geodis_index = parse_geodis_excel(local_file, latest)
+        enriched, matches = enrich_with_geodis(rows, geodis_index)
+    if args.skip_invapp:
+        inventory: dict[str, Any] = {"locations": [], "rowCount": 0, "rows": []}
+    else:
+        inventory = fetch_inventory_rows()
     inventory_history = append_inventory_history(prior_inventory_history, inventory, brand_cfg)
     payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history, brand_cfg)
     render_template(template, output, payload)
