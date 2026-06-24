@@ -8,7 +8,7 @@ import urllib.parse
 import urllib.request
 import warnings
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -288,6 +288,8 @@ def enrich_with_geodis(rows: list[dict[str, Any]], geodis_index: dict[str, dict[
 
 def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LOOKBACK_DAYS) -> list[dict[str, Any]]:
     client = bigquery.Client(project="tlg-wlfs-prd")
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=lookback_days)
     query = f"""
     SELECT
       JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') AS assigned_location_code,
@@ -298,17 +300,16 @@ def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LO
       lastModifiedDate
     FROM `{SHIPMENT_STATUS_TABLE}`
     WHERE eventType = 'SHIPPED'
-      AND TIMESTAMP(eventTimeStamp) >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @lookback_days DAY)
+      AND TIMESTAMP(eventTimeStamp) >= @cutoff
       AND JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') IN UNNEST(@locations)
     QUALIFY ROW_NUMBER() OVER (PARTITION BY shipmentOrderNumber ORDER BY eventTimeStamp DESC) = 1
     """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
-            bigquery.ScalarQueryParameter("lookback_days", "INT64", lookback_days),
+            bigquery.ScalarQueryParameter("cutoff", "TIMESTAMP", cutoff),
             bigquery.ArrayQueryParameter("locations", "STRING", locations),
         ]
     )
-    now = datetime.now(timezone.utc)
     rows: list[dict[str, Any]] = []
     for row in client.query(query).result():
         d = dict(row.items())
