@@ -30,6 +30,8 @@ DEFAULT_INVENTORY_LOCATIONS = "TLTEMP0048,TLITWH0048,TLITGX0048"
 DEFAULT_TOKEN_URL = "https://integrations.thelevelgroup.com/identity/oauth2/token"
 DEFAULT_INVENTORY_URL = "https://integrations.thelevelgroup.com/invapp-dab-prod/v2/InventoryWmsMonitoring"
 INVENTORY_HISTORY_LIMIT = 168
+FULFILLED_LOOKBACK_DAYS = 30
+SHIPMENT_STATUS_TABLE = "tlg-wlfs-prd.til.prd_shipmentStatus"
 
 GEODIS_STATUS = {
     "1": "INTEGRATO",
@@ -284,6 +286,78 @@ def enrich_with_geodis(rows: list[dict[str, Any]], geodis_index: dict[str, dict[
     return rows, matched
 
 
+def fetch_fulfilled_rows(locations: list[str], lookback_days: int = FULFILLED_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+    client = bigquery.Client(project="tlg-wlfs-prd")
+    query = f"""
+    SELECT
+      JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') AS assigned_location_code,
+      brand,
+      shipmentOrderNumber AS shipment_order_number,
+      JSON_VALUE(requestPayload, '$.data.logisticOrderNumber') AS logistic_order_number,
+      eventTimeStamp AS update_datetime,
+      lastModifiedDate
+    FROM `{SHIPMENT_STATUS_TABLE}`
+    WHERE eventType = 'SHIPPED'
+      AND TIMESTAMP(eventTimeStamp) >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @lookback_days DAY)
+      AND JSON_VALUE(requestUserProperties, '$.fulfillmentLocationCode') IN UNNEST(@locations)
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY shipmentOrderNumber ORDER BY eventTimeStamp DESC) = 1
+    """
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("lookback_days", "INT64", lookback_days),
+            bigquery.ArrayQueryParameter("locations", "STRING", locations),
+        ]
+    )
+    now = datetime.now(timezone.utc)
+    rows: list[dict[str, Any]] = []
+    for row in client.query(query).result():
+        d = dict(row.items())
+        brand_val: str = d.get("brand") or ""
+        logistic: str = d.get("logistic_order_number") or ""
+        oms_shipment = logistic[len(brand_val):] if logistic.startswith(brand_val) and logistic else None
+
+        update_dt = d.get("update_datetime")
+        if update_dt is not None and hasattr(update_dt, "timestamp"):
+            if getattr(update_dt, "tzinfo", None) is None:
+                update_dt = update_dt.replace(tzinfo=timezone.utc)
+            delta = now - update_dt
+            days_since: float | None = delta.total_seconds() / 86400
+            update_iso: str | None = update_dt.isoformat()
+        else:
+            days_since = None
+            update_iso = None
+
+        rows.append({
+            "dashboard_refreshed_at_utc": now.isoformat(),
+            "assigned_location_code": d.get("assigned_location_code"),
+            "location_label": None,
+            "order_number": None,
+            "external_order_id": None,
+            "shipment_order_number": d.get("shipment_order_number"),
+            "oms_order_id": None,
+            "oms_shipment_number": oms_shipment,
+            "brand": brand_val or None,
+            "shipment_status": "FULFILLED",
+            "fulfillment_status": "FULFILLED",
+            "workflow_shipment_state": None,
+            "active_task_name": None,
+            "active_task_id": None,
+            "order_submit_datetime_rome": None,
+            "shipment_creation_datetime_rome": None,
+            "update_datetime_rome": update_iso,
+            "hours_since_update": round(days_since * 24) if days_since is not None else None,
+            "days_since_update": round(days_since) if days_since is not None else None,
+            "days_since_creation": None,
+            "update_age_bucket": None,
+            "dashboard_state": None,
+            "attention_bucket": None,
+            "attention_sort": 999,
+            "is_canceled": False,
+            "is_ready": False,
+        })
+    return rows
+
+
 def fetch_inventory_rows() -> dict[str, Any]:
     client_id = os.environ.get("INVAPP_CLIENT_ID")
     client_secret = os.environ.get("INVAPP_CLIENT_SECRET")
@@ -465,7 +539,10 @@ def main() -> None:
     if not template.exists():
         raise RuntimeError(f"Template not found: {template}")
 
+    locations = [loc.strip() for loc in os.environ.get("INVAPP_LOCATIONS", DEFAULT_INVENTORY_LOCATIONS).split(",")]
     rows = fetch_bigquery_rows()
+    fulfilled_rows = fetch_fulfilled_rows(locations)
+    combined_rows = rows + fulfilled_rows
     prior_inventory_history = previous_inventory_history(output)
 
     sftp = connect_sftp()
@@ -476,7 +553,7 @@ def main() -> None:
         close_sftp(sftp)
 
     geodis_index = parse_geodis_excel(local_file, latest)
-    enriched, matches = enrich_with_geodis(rows, geodis_index)
+    enriched, matches = enrich_with_geodis(combined_rows, geodis_index)
     inventory = fetch_inventory_rows()
     inventory_history = append_inventory_history(prior_inventory_history, inventory)
     payload = build_payload(enriched, latest, len(geodis_index), matches, inventory, inventory_history)
@@ -485,6 +562,8 @@ def main() -> None:
     print(json.dumps({
         "output": str(output),
         "rows": len(enriched),
+        "active_rows": len(rows),
+        "fulfilled_rows": len(fulfilled_rows),
         "geodis_file": latest.filename,
         "geodis_references": len(geodis_index),
         "geodis_matched_shipments": matches,
