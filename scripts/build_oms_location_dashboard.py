@@ -300,7 +300,7 @@ def fetch_inventory_rows() -> dict[str, Any]:
     if not client_id or not client_secret:
         raise RuntimeError("Missing INVAPP_CLIENT_ID or INVAPP_CLIENT_SECRET environment variable")
 
-    locations = os.environ.get("INVAPP_LOCATIONS", DEFAULT_INVENTORY_LOCATIONS)
+    locations = os.environ.get("INVAPP_LOCATIONS", "")
     token_url = os.environ.get("INVAPP_TOKEN_URL", DEFAULT_TOKEN_URL)
     inventory_url = os.environ.get("INVAPP_INVENTORY_URL", DEFAULT_INVENTORY_URL)
 
