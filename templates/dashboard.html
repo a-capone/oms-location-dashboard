@@ -963,9 +963,9 @@
 
       <section class="tab-panel active" id="ordersPanel">
         <nav class="sub-tabs" aria-label="Shipment per location">
-          <button class="sub-tab-button active" type="button" id="tempTabBtn" data-subtab="tempPanel">FE Temporary (<span id="tempTabCount">0</span>)</button>
-          <button class="sub-tab-button" type="button" id="whTabBtn" data-subtab="whPanel">CSG Location (<span id="whTabCount">0</span>)</button>
-          <button class="sub-tab-button" type="button" id="gxoTabBtn" data-subtab="gxoPanel">GXO 0048 (<span id="gxoTabCount">0</span>)</button>
+          <button class="sub-tab-button active" type="button" id="tempTabBtn" data-subtab="tempPanel"><span id="tempTabLabel">Temporary</span> (<span id="tempTabCount">0</span>)</button>
+          <button class="sub-tab-button" type="button" id="whTabBtn" data-subtab="whPanel"><span id="whTabLabel">CSG Location</span> (<span id="whTabCount">0</span>)</button>
+          <button class="sub-tab-button" type="button" id="gxoTabBtn" data-subtab="gxoPanel"><span id="gxoTabLabel">GXO</span> (<span id="gxoTabCount">0</span>)</button>
           <button class="sub-tab-button" type="button" id="allTabBtn" data-subtab="allPanel">All Orders (<span id="allTabCount">0</span>)</button>
         </nav>
 
@@ -1015,7 +1015,7 @@
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
-              <h2 class="panel-title">FE Temporary - Shipments</h2>
+              <h2 class="panel-title" id="tempPanelTitle">Temporary - Shipments</h2>
               <p class="panel-subtitle" id="tempPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
@@ -1048,7 +1048,7 @@
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
-              <h2 class="panel-title">CSG Location - Shipments</h2>
+              <h2 class="panel-title" id="whPanelTitle">CSG Location - Shipments</h2>
               <p class="panel-subtitle" id="whPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
@@ -1081,7 +1081,7 @@
         <section class="panel table-panel">
           <div class="panel-head">
             <div>
-              <h2 class="panel-title">GXO 0048 - Shipments</h2>
+              <h2 class="panel-title" id="gxoPanelTitle">GXO - Shipments</h2>
               <p class="panel-subtitle" id="gxoPanelSubtitle"></p>
             </div>
             <div class="panel-actions">
@@ -1115,7 +1115,7 @@
           <div class="panel-head">
             <div>
               <h2 class="panel-title">All Orders</h2>
-              <p class="panel-subtitle">Tutti gli ordini attivi su FE Temporary, CSG Location e GXO 0048.</p>
+              <p class="panel-subtitle" id="allOrdersSubtitle"></p>
             </div>
             <div class="panel-actions">
               <span class="pill mono" id="allTableCount"></span>
@@ -1247,6 +1247,13 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       tempPanelSubtitle: document.getElementById("tempPanelSubtitle"),
       whPanelSubtitle: document.getElementById("whPanelSubtitle"),
       gxoPanelSubtitle: document.getElementById("gxoPanelSubtitle"),
+      tempTabLabel: document.getElementById("tempTabLabel"),
+      whTabLabel: document.getElementById("whTabLabel"),
+      gxoTabLabel: document.getElementById("gxoTabLabel"),
+      tempPanelTitle: document.getElementById("tempPanelTitle"),
+      whPanelTitle: document.getElementById("whPanelTitle"),
+      gxoPanelTitle: document.getElementById("gxoPanelTitle"),
+      allOrdersSubtitle: document.getElementById("allOrdersSubtitle"),
       tempExportBtn: document.getElementById("tempExportBtn"),
       whExportBtn: document.getElementById("whExportBtn"),
       gxoExportBtn: document.getElementById("gxoExportBtn"),
@@ -1281,6 +1288,13 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
       if (el.dashboardTitle) el.dashboardTitle.textContent = title;
       const locs = [brandCfg.temp, brandCfg.wh, brandCfg.gxo].filter(Boolean).join(", ");
       if (el.dashboardSubtitle) el.dashboardSubtitle.textContent = `${brandCfg.name} - Monitoraggio spedizioni attive: ${locs}.`;
+      if (el.tempTabLabel) el.tempTabLabel.textContent = brandCfg.temp;
+      if (el.whTabLabel) el.whTabLabel.textContent = brandCfg.wh || "";
+      if (el.gxoTabLabel) el.gxoTabLabel.textContent = brandCfg.gxo;
+      if (el.tempPanelTitle) el.tempPanelTitle.textContent = `${brandCfg.temp} - Shipments`;
+      if (el.whPanelTitle) el.whPanelTitle.textContent = `${brandCfg.wh || ""} - Shipments`;
+      if (el.gxoPanelTitle) el.gxoPanelTitle.textContent = `${brandCfg.gxo} - Shipments`;
+      if (el.allOrdersSubtitle) el.allOrdersSubtitle.textContent = `Tutti gli ordini attivi su ${[brandCfg.temp, brandCfg.wh, brandCfg.gxo].filter(Boolean).join(", ")}.`;
       if (el.tempPanelSubtitle) el.tempPanelSubtitle.textContent = `${brandCfg.temp} - Temporary location.`;
       if (el.whPanelSubtitle) el.whPanelSubtitle.textContent = `${brandCfg.wh || "N/A"} - Warehouse location, spedizioni aged non aggiornate sul WMS.`;
       if (el.gxoPanelSubtitle) el.gxoPanelSubtitle.textContent = `${brandCfg.gxo} - GXO target location, spedizioni assegnate alla location definitiva.`;
