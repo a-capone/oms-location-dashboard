@@ -40,36 +40,11 @@ jobs:
         env:
           GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
 
-      - name: Download previous deployed dashboard
-        shell: bash
-        run: |
-          mkdir -p runtime
-          python - <<'PY'
-          import os
-          import urllib.request
-
-          base_url = os.environ.get("DASHBOARD_PUBLIC_URL", "").strip()
-          if not base_url:
-              owner = os.environ["GITHUB_REPOSITORY_OWNER"]
-              repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)[1]
-              base_url = f"https://{owner}.github.io/{repo}"
-
-          try:
-              with urllib.request.urlopen(base_url.rstrip("/") + "/index.html", timeout=30) as response:
-                  html = response.read()
-          except Exception:
-              raise SystemExit(0)
-
-          with open("runtime/previous-index.html", "wb") as handle:
-              handle.write(html)
-          PY
+      - name: Build FE dashboard
+        continue-on-error: false
+        run: python scripts/build_oms_location_dashboard.py --brand FE
         env:
-          DASHBOARD_PUBLIC_URL: ${{ vars.DASHBOARD_PUBLIC_URL }}
-
-      - name: Refresh mono-file dashboard
-        run: python scripts/build_oms_location_dashboard.py --output tmp/index.html
-        env:
-          DASHBOARD_PREVIOUS_HTML: runtime/previous-index.html
+          DASHBOARD_PREVIOUS_HTML: ""
           GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
           GEODIS_SFTP_USER: stnetlglog.geodis
           GEODIS_SFTP_PORT: "22"
@@ -77,6 +52,54 @@ jobs:
           INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
           INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
           INVAPP_LOCATIONS: TLTEMP0048,TLITWH0048,TLITGX0048
+
+      - name: Build DG dashboard
+        continue-on-error: true
+        run: python scripts/build_oms_location_dashboard.py --brand DG
+        env:
+          GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
+          GEODIS_SFTP_USER: stnetlglog.geodis
+          GEODIS_SFTP_PORT: "22"
+          GEODIS_SFTP_PASSWORD: ${{ secrets.GEODIS_SFTP_PASSWORD }}
+          INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
+          INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
+          INVAPP_LOCATIONS: TLTEMP0015,TLITWH0015,TLITGX0015
+
+      - name: Build DJ dashboard
+        continue-on-error: true
+        run: python scripts/build_oms_location_dashboard.py --brand DJ
+        env:
+          GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
+          GEODIS_SFTP_USER: stnetlglog.geodis
+          GEODIS_SFTP_PORT: "22"
+          GEODIS_SFTP_PASSWORD: ${{ secrets.GEODIS_SFTP_PASSWORD }}
+          INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
+          INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
+          INVAPP_LOCATIONS: TLTEMP0011,TLITWH0011,TLITGX0011
+
+      - name: Build BB dashboard
+        continue-on-error: true
+        run: python scripts/build_oms_location_dashboard.py --brand BB
+        env:
+          GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
+          GEODIS_SFTP_USER: stnetlglog.geodis
+          GEODIS_SFTP_PORT: "22"
+          GEODIS_SFTP_PASSWORD: ${{ secrets.GEODIS_SFTP_PASSWORD }}
+          INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
+          INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
+          INVAPP_LOCATIONS: TLTEMP0042,BBITST0001,TLITGX0042
+
+      - name: Build WL dashboard
+        continue-on-error: true
+        run: python scripts/build_oms_location_dashboard.py --brand WL
+        env:
+          GEODIS_SFTP_HOST: stnetlglog.blob.core.windows.net
+          GEODIS_SFTP_USER: stnetlglog.geodis
+          GEODIS_SFTP_PORT: "22"
+          GEODIS_SFTP_PASSWORD: ${{ secrets.GEODIS_SFTP_PASSWORD }}
+          INVAPP_CLIENT_ID: ${{ secrets.INVAPP_CLIENT_ID }}
+          INVAPP_CLIENT_SECRET: ${{ secrets.INVAPP_CLIENT_SECRET }}
+          INVAPP_LOCATIONS: TLTEMP0012,TLITWH0012,TLITGX0012
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
