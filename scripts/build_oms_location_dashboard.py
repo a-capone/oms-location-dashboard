@@ -125,7 +125,7 @@ def fetch_bigquery_rows(locations: list[str]) -> list[dict[str, Any]]:
       is_canceled,
       is_ready
     FROM `{VIEW_ID}`
-    WHERE shipment_status != 'CANCELED'
+    WHERE shipment_status NOT IN ('CANCELED', 'REASSIGNED')
       AND assigned_location_code IN UNNEST(@locations)
     ORDER BY attention_sort, days_since_update DESC, assigned_location_code, external_order_id, oms_shipment_number
     """
