@@ -1471,7 +1471,7 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
 
       const counts = {};
       rows.forEach((row) => {
-        const s = value(row, "fulfillment_status");
+        const s = value(row, "dashboard_state");
         if (s && s !== "n/a") counts[s] = (counts[s] || 0) + 1;
       });
 
@@ -1508,7 +1508,7 @@ window.OMS_DASHBOARD_DATA = __OMS_DATA__;
     function renderSubTable(tbody, countBadge, tabCount, rows, locationCode) {
       const activeOmsStatus = state.omsFilter[locationCode] || null;
       const filtered = activeOmsStatus
-        ? rows.filter((row) => value(row, "fulfillment_status") === activeOmsStatus)
+        ? rows.filter((row) => value(row, "dashboard_state") === activeOmsStatus)
         : rows;
       const sorted = [...filtered].sort((a, b) => (Number(b.days_since_update) || 0) - (Number(a.days_since_update) || 0));
       if (tabCount) tabCount.textContent = rows.length;
